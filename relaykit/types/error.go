@@ -88,14 +88,15 @@ const (
 )
 
 type NewAPIError struct {
-	Err            error
-	RelayError     any
-	skipRetry      bool
-	recordErrorLog *bool
-	errorType      ErrorType
-	errorCode      ErrorCode
-	StatusCode     int
-	Metadata       json.RawMessage
+	Err               error
+	RelayError        any
+	skipRetry         bool
+	recordErrorLog    *bool
+	upstreamHTTPError bool
+	errorType         ErrorType
+	errorCode         ErrorCode
+	StatusCode        int
+	Metadata          json.RawMessage
 }
 
 // Unwrap enables errors.Is / errors.As to work with NewAPIError by exposing the underlying error.
@@ -240,6 +241,38 @@ func (e *NewAPIError) ToClaudeError(upstreamURLs ...string) ClaudeError {
 	}
 	if result.Message == "" {
 		result.Message = string(e.errorType)
+	}
+	return result
+}
+
+const clientUpstreamUnavailableMessage = "当前服务节点暂不可用，请稍后重试。"
+
+// ClientStatusCode returns the status exposed to relay clients while keeping
+// the original upstream status on NewAPIError for internal retry decisions.
+func (e *NewAPIError) ClientStatusCode() int {
+	if e == nil {
+		return 0
+	}
+	if e.upstreamHTTPError && (e.StatusCode == http.StatusUnauthorized || e.StatusCode == http.StatusPaymentRequired) {
+		return http.StatusServiceUnavailable
+	}
+	return e.StatusCode
+}
+
+// ToClientOpenAIError hides details from non-200 upstream HTTP responses.
+func (e *NewAPIError) ToClientOpenAIError(upstreamURLs ...string) OpenAIError {
+	result := e.ToOpenAIError(upstreamURLs...)
+	if e != nil && e.upstreamHTTPError {
+		result.Message = clientUpstreamUnavailableMessage
+	}
+	return result
+}
+
+// ToClientClaudeError hides details from non-200 upstream HTTP responses.
+func (e *NewAPIError) ToClientClaudeError(upstreamURLs ...string) ClaudeError {
+	result := e.ToClaudeError(upstreamURLs...)
+	if e != nil && e.upstreamHTTPError {
+		result.Message = clientUpstreamUnavailableMessage
 	}
 	return result
 }
@@ -398,6 +431,12 @@ func ErrOptionWithNoRecordErrorLog() NewAPIErrorOptions {
 func ErrOptionWithStatusCode(statusCode int) NewAPIErrorOptions {
 	return func(e *NewAPIError) {
 		e.StatusCode = statusCode
+	}
+}
+
+func ErrOptionWithUpstreamHTTPError() NewAPIErrorOptions {
+	return func(e *NewAPIError) {
+		e.upstreamHTTPError = true
 	}
 }
 

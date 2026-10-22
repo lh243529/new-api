@@ -888,11 +888,11 @@ func buildResponsesWSErrorPayload(eventID, streamID string, apiErr *types.NewAPI
 	if apiErr == nil {
 		return nil, errors.New("api error is nil")
 	}
-	status := apiErr.StatusCode
+	status := apiErr.ClientStatusCode()
 	if status == 0 {
 		status = http.StatusInternalServerError
 	}
-	openaiErr := apiErr.ToOpenAIError(upstreamURLs...)
+	openaiErr := apiErr.ToClientOpenAIError(upstreamURLs...)
 	return common.Marshal(&responsesWSErrorEvent{
 		Type:     "error",
 		Status:   status,
