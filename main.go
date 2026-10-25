@@ -63,7 +63,7 @@ func main() {
 		return
 	}
 
-	common.SysLog(common.LogText("New API %s started", common.Version))
+	common.SysLog(common.LogText("灵渠API %s started", common.Version))
 	if os.Getenv("GIN_MODE") != "debug" {
 		gin.SetMode(gin.ReleaseMode)
 	}

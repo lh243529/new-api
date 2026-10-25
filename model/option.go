@@ -215,7 +215,11 @@ func loadOptionsFromDatabase() {
 			passkeyOptions[option.Key] = option.Value
 			continue
 		}
-		err := updateOptionMap(option.Key, option.Value)
+		value := option.Value
+		if option.Key == "SystemName" && value == "New API" {
+			value = "灵渠API"
+		}
+		err := updateOptionMap(option.Key, value)
 		if err != nil {
 			common.SysLog(common.LogText("failed to update option map: %s", err.Error()))
 		}

@@ -1,0 +1,26 @@
+
+Rsbuild v2.2.14
+
+  ➜  Network:  http://26.10.57.148:5173/  (Radmin VPN)
+  ➜  Network:  http://192.168.1.4:5173/   (以太网)
+  ➜  Local:    http://localhost:5173/
+  ➜  press h + enter to show shortcuts
+
+start   build started...
+ready   built in 2.98s
+start   building query-devtools\build\DevtoolsComponent-qqrUzsOa.js
+ready   built in 0.36s
+start   building router-devtools-core\dist\FloatingTanStackRouterDevtools-CqogiFob.js
+ready   built in 0.16s
+start   building components\sections\hero.tsx
+ready   built in 0.86s
+start   building sections\__tests__\hero-layout.test.tsx
+ready   built in 0.66s
+start   building components\sections\hero.tsx
+ready   built in 0.43s
+start   building features\home\index.tsx
+ready   built in 0.51s
+start   building components\sections\hero.tsx
+ready   built in 0.52s
+start   building src
+ready   built in 0.42s

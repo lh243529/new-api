@@ -1,0 +1,45 @@
+[SYS] 2026/10/25 - 20:37:01 | SQL_DSN not set, using SQLite as database 
+[SYS] 2026/10/25 - 20:37:01 | database migration started 
+
+2026/10/25 20:37:01 [32mC:/Users/11621/go/pkg/mod/github.com/glebarez/sqlite@v1.11.0/migrator.go:342
+[0m[33m[0.000ms] [34;1m[rows:1][0m SELECT * FROM PRAGMA_index_list("options")
+[SYS] 2026/10/25 - 20:37:01 | system is already initialized at: 2026-10-24 22:50:45 +0800 CST 
+[SYS] 2026/10/25 - 20:37:01 | REDIS_CONN_STRING not set, Redis is not enabled 
+[SYS] 2026/10/25 - 20:37:01 | i18n initialized with languages: zh-CN, zh-TW, en 
+[SYS] 2026/10/25 - 20:37:01 | Loaded 0 custom OAuth providers 
+[SYS] 2026/10/25 - 20:37:01 | 灵渠API v0.0.0 started 
+[SYS] 2026/10/25 - 20:37:01 | updating dashboard data... 
+[INFO] 2026/10/25 - 20:37:01 | SYSTEM | codex credential auto-refresh task started: tick=10m0s threshold=24h0m0s 
+[INFO] 2026/10/25 - 20:37:01 | SYSTEM | subscription quota reset task started: tick=1m0s 
+[INFO] 2026/10/25 - 20:37:01 | SYSTEM | system task runner started: runner=sora-GFJcWRHc idle_interval=15s 
+[SYS] 2026/10/25 - 20:37:01 | saved dashboard data, 0 records 
+
+  [33mWarning: Refresh cookie is not secure and refresh/logout Origin validation is disabled. Please set SESSION_COOKIE_SECURE=true in production.[0m
+
+
+  [32m灵渠API v0.0.0[0m  ready in 172 ms
+
+  ➜  [1mLocal:  [0m http://localhost:3000/
+  ➜  [1mNetwork:[0m http://10.198.75.60:3000/
+  ➜  [1mNetwork:[0m http://192.168.1.4:3000/
+
+[GIN] 2026/10/25 - 20:37:26 | web | 202610251237260323002008268d9d6s7twuUhV | 200 |       496.2µs |             ::1 |     GET /
+[SYS] 2026/10/25 - 20:38:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:39:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:40:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:41:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:42:01 | updating dashboard data... 
+[SYS] 2026/10/25 - 20:42:01 | saved dashboard data, 0 records 
+[SYS] 2026/10/25 - 20:42:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:43:01 | syncing options from database 
+[GIN] 2026/10/25 - 20:43:30 | api | 202610251243303289951008268d9d6gEYvetZ7 | 200 |       704.1µs |             ::1 |     GET /api/status
+[GIN] 2026/10/25 - 20:43:30 | api | 202610251243303331822008268d9d6iPMhxsxw | 200 |            0s |             ::1 |     GET /api/setup?t=1792932210329
+[GIN] 2026/10/25 - 20:43:30 | api | 202610251243303900563008268d9d6jRYFPw2n | 304 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/10/25 - 20:43:30 | api | 202610251243303907603008268d9d6l57uf5II | 304 |            0s |             ::1 |     GET /api/home_page_content
+[GIN] 2026/10/25 - 20:43:32 | api | 202610251243329455317008268d9d65N3VlsgQ | 200 |       555.5µs |             ::1 |     GET /api/status
+[GIN] 2026/10/25 - 20:43:32 | api | 202610251243329505747008268d9d6A9sVpNjk | 200 |            0s |             ::1 |     GET /api/setup?t=1792932212947
+[GIN] 2026/10/25 - 20:43:32 | api | 202610251243329976982008268d9d6wkuhrHzX | 304 |            0s |             ::1 |     GET /api/notice
+[GIN] 2026/10/25 - 20:43:32 | api | 202610251243329976982008268d9d6iOWMOB9j | 304 |            0s |             ::1 |     GET /api/home_page_content
+[SYS] 2026/10/25 - 20:44:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:45:01 | syncing options from database 
+[SYS] 2026/10/25 - 20:46:01 | syncing options from database 
