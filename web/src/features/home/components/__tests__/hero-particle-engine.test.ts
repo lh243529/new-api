@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { startHeroParticleEngine } from '../hero-particle-engine'
+import {
+  applyTextPointerForce,
+  startHeroParticleEngine,
+  type MeteorInteractionChannel,
+} from '../hero-particle-engine'
 
 function createCanvasContext(): CanvasRenderingContext2D {
   const gradient = { addColorStop: vi.fn() } as unknown as CanvasGradient
@@ -146,6 +150,146 @@ describe('hero particle engine', () => {
     expect(textContext.clearRect).toHaveBeenCalledTimes(2)
 
     cleanup()
+  })
+
+  it('publishes meteor coordinates and uses the icon color for the trail', () => {
+    const context = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    let renderFrame: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      renderFrame = callback
+      return 21
+    })
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 10,
+      top: 20,
+      right: 810,
+      bottom: 500,
+      width: 800,
+      height: 480,
+    } as DOMRect)
+    const channel: MeteorInteractionChannel = { pointers: [], updatedAt: 0 }
+    const cleanup = startHeroParticleEngine(
+      stage,
+      document.createElement('canvas'),
+      null,
+      { x: -10000, y: -10000, active: false },
+      false,
+      channel
+    )
+
+    renderFrame?.(0)
+
+    expect(channel.pointers).toHaveLength(18)
+    expect(channel.pointers[0]).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+      size: 38,
+      color: [217, 119, 87],
+    })
+    const linearGradient = vi.mocked(context.createLinearGradient).mock
+      .results[0]?.value as CanvasGradient & {
+      addColorStop: ReturnType<typeof vi.fn>
+    }
+    expect(linearGradient.addColorStop).toHaveBeenCalledWith(
+      0,
+      'rgba(217, 119, 87, 0)'
+    )
+    expect(linearGradient.addColorStop).toHaveBeenCalledWith(
+      1,
+      'rgba(217, 119, 87, 0.72)'
+    )
+    cleanup()
+  })
+
+  it('repels text particles when a shared meteor crosses the title', () => {
+    const context = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(Math, 'random').mockReturnValue(0)
+    let renderFrame: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      renderFrame = callback
+      return 21
+    })
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 640,
+      bottom: 480,
+      width: 640,
+      height: 480,
+    } as DOMRect)
+    const channel: MeteorInteractionChannel = {
+      pointers: [{ x: 320, y: 147, size: 38, color: [77, 107, 254] as const }],
+      updatedAt: 0,
+    }
+    const cleanup = startHeroParticleEngine(
+      stage,
+      null,
+      document.createElement('canvas'),
+      { x: -10000, y: -10000, active: false },
+      false,
+      channel
+    )
+
+    renderFrame?.(0)
+
+    const textDraws = vi
+      .mocked(context.fillRect)
+      .mock.calls.find((call) => call[2] === 2 && call[3] === 2)
+    expect(textDraws?.[0]).toBeGreaterThan(342)
+    cleanup()
+  })
+
+  it('applies the same repulsion force to meteor and mouse pointers', () => {
+    const particle = {
+      x: 40,
+      y: 0,
+      targetX: 40,
+      targetY: 0,
+      vx: 0,
+      vy: 0,
+      color: '',
+    }
+
+    applyTextPointerForce(particle, 0, 0)
+
+    expect(particle.vx).toBeCloseTo(0.9)
+    expect(particle.vy).toBe(0)
+  })
+
+  it('clears published meteors when the background engine is disposed', () => {
+    const context = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(window, 'requestAnimationFrame').mockReturnValue(21)
+    const channel: MeteorInteractionChannel = {
+      pointers: [{ x: 1, y: 1, size: 40, color: [1, 2, 3] as const }],
+      updatedAt: 10,
+    }
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 640,
+      bottom: 480,
+      width: 640,
+      height: 480,
+    } as DOMRect)
+    const cleanup = startHeroParticleEngine(
+      stage,
+      document.createElement('canvas'),
+      null,
+      { x: -10000, y: -10000, active: false },
+      false,
+      channel
+    )
+
+    cleanup()
+
+    expect(channel).toEqual({ pointers: [], updatedAt: 0 })
   })
 
   it('resumes drawing immediately when the page becomes visible again', () => {

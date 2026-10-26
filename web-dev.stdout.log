@@ -1,22 +1,14 @@
 
-Rsbuild v2.2.14
+Rsbuild v2.1.6
 
-  ➜  Network:  http://26.10.57.148:5173/  (Radmin VPN)
-  ➜  Network:  http://192.168.1.4:5173/   (以太网)
+  ➜  Network:  http://26.10.57.148:5173/
+  ➜  Network:  http://192.168.1.4:5173/
   ➜  Local:    http://localhost:5173/
   ➜  press h + enter to show shortcuts
 
 start   build started...
-ready   built in 2.94s
-start   building query-devtools\build\DevtoolsComponent-qqrUzsOa.js
+ready   built in 2.36s
+start   building build\DevtoolsComponent\SO26Z5QU.js
+ready   built in 0.33s
+start   building router-devtools-core\dist\FloatingTanStackRouterDevtools-CnpwH7La.js
 ready   built in 0.29s
-start   building router-devtools-core\dist\FloatingTanStackRouterDevtools-CqogiFob.js
-ready   built in 0.15s
-start   building home\components\hero-particle-engine.ts
-ready   built in 0.51s
-start   building components\__tests__\hero-particle-engine.test.ts
-ready   built in 0.39s
-start   building home\components\hero-particle-engine.ts
-ready   built in 0.73s
-start   building components\__tests__\hero-particle-engine.test.ts
-ready   built in 0.51s

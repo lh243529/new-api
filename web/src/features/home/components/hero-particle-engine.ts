@@ -23,12 +23,27 @@ type TextParticle = {
   color: string
 }
 
+type RGB = readonly [number, number, number]
+
 type Meteor = {
   offset: number
   lane: number
   speed: number
   size: number
   image: HTMLImageElement
+  trailColor: RGB
+}
+
+export type MeteorInteraction = {
+  x: number
+  y: number
+  size: number
+  color: RGB
+}
+
+export type MeteorInteractionChannel = {
+  pointers: MeteorInteraction[]
+  updatedAt: number
 }
 
 const ZONE_COLORS = [
@@ -37,13 +52,16 @@ const ZONE_COLORS = [
   [102, 103, 171],
 ] as const
 
-const MODEL_ICON_PATHS = [
-  '/model/claude.svg',
-  '/model/deepseek.svg',
-  '/model/openai.svg',
-  '/model/xai.svg',
-  '/model/zhipu.svg',
-] as const
+const MODEL_ICONS: ReadonlyArray<{
+  path: string
+  color: RGB
+}> = [
+  { path: '/model/claude.svg', color: [217, 119, 87] },
+  { path: '/model/deepseek.svg', color: [77, 107, 254] },
+  { path: '/model/openai.svg', color: [229, 231, 235] },
+  { path: '/model/xai.svg', color: [203, 213, 225] },
+  { path: '/model/zhipu.svg', color: [56, 89, 255] },
+]
 
 const MAX_BACKGROUND_CANVAS_PIXELS = 3_000_000
 const MAX_TEXT_CANVAS_PIXELS = 2_000_000
@@ -62,14 +80,16 @@ function getPixelRatio(
 function createMeteors(width: number): Meteor[] {
   const count = width < 700 ? 10 : 18
   return Array.from({ length: count }, (_, index) => {
+    const icon = MODEL_ICONS[Math.floor(Math.random() * MODEL_ICONS.length)]
     const image = new Image()
-    image.src = MODEL_ICON_PATHS[Math.floor(Math.random() * MODEL_ICON_PATHS.length)]
+    image.src = icon.path
     return {
       offset: Math.random(),
       lane: 0.01 + ((index + Math.random() * 0.8) / count) * 0.98,
       speed: 0.00008 + Math.random() * 0.000045,
       size: 38 + Math.random() * 18,
       image,
+      trailColor: icon.color,
     }
   })
 }
@@ -105,14 +125,13 @@ function createParticles(width: number, height: number): Particle[] {
   })
 }
 
-function createTextParticles(
-  width: number,
-  height: number,
-): TextParticle[] {
+function createTextParticles(width: number, height: number): TextParticle[] {
   const offscreen = document.createElement('canvas')
   offscreen.width = Math.ceil(width)
   offscreen.height = Math.ceil(height)
-  const offscreenContext = offscreen.getContext('2d', { willReadFrequently: true })
+  const offscreenContext = offscreen.getContext('2d', {
+    willReadFrequently: true,
+  })
   if (!offscreenContext) return []
 
   const fontSize = Math.max(52, Math.min(196, width * 0.28, height * 0.4))
@@ -132,7 +151,12 @@ function createTextParticles(
       : fullTextWidth * 0.5
   const colorBoundary = width / 2 - fullTextWidth / 2 + prefixWidth
 
-  const pixels = offscreenContext.getImageData(0, 0, offscreen.width, offscreen.height)
+  const pixels = offscreenContext.getImageData(
+    0,
+    0,
+    offscreen.width,
+    offscreen.height
+  )
   const step = width < 500 ? 4 : 3
   const points: TextParticle[] = []
   for (let y = 0; y < offscreen.height; y += step) {
@@ -202,7 +226,9 @@ function drawBackground(
   pointer: Pointer,
   frame: number,
   meteors: Meteor[],
-  zoneGlows: CanvasGradient[]
+  zoneGlows: CanvasGradient[],
+  stageBounds: DOMRect | null,
+  meteorChannel: MeteorInteractionChannel | null
 ): void {
   context.clearRect(0, 0, width, height)
   for (let zone = 0; zone < 3; zone++) {
@@ -255,8 +281,10 @@ function drawBackground(
     context.fill()
   }
 
+  const meteorPointers: MeteorInteraction[] = []
   for (const meteor of meteors) {
-    const cometX = ((frame * meteor.speed + meteor.offset) % 1.2) * (width + 180) - 90
+    const cometX =
+      ((frame * meteor.speed + meteor.offset) % 1.2) * (width + 180) - 90
     const lane = Math.min(
       0.99,
       Math.max(
@@ -265,15 +293,24 @@ function drawBackground(
       )
     )
     const cometY = height * lane
+    if (stageBounds && meteorChannel) {
+      meteorPointers.push({
+        x: stageBounds.left + cometX,
+        y: stageBounds.top + cometY,
+        size: meteor.size,
+        color: meteor.trailColor,
+      })
+    }
     const trailLength = meteor.size * 4.2
+    const [red, green, blue] = meteor.trailColor
     const trail = context.createLinearGradient(
       cometX - trailLength,
       cometY,
       cometX,
       cometY
     )
-    trail.addColorStop(0, 'rgba(255, 153, 51, 0)')
-    trail.addColorStop(1, 'rgba(255, 240, 210, 0.72)')
+    trail.addColorStop(0, `rgba(${red}, ${green}, ${blue}, 0)`)
+    trail.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0.72)`)
     context.strokeStyle = trail
     context.lineWidth = 1.5
     context.beginPath()
@@ -281,10 +318,14 @@ function drawBackground(
     context.lineTo(cometX, cometY)
     context.stroke()
 
-    if (meteor.image.complete && meteor.image.naturalWidth > 0 && typeof context.drawImage === 'function') {
+    if (
+      meteor.image.complete &&
+      meteor.image.naturalWidth > 0 &&
+      typeof context.drawImage === 'function'
+    ) {
       context.save()
       context.globalAlpha = 0.9
-      context.shadowColor = 'rgba(255, 210, 130, 0.65)'
+      context.shadowColor = `rgba(${red}, ${green}, ${blue}, 0.65)`
       context.shadowBlur = 10
       context.drawImage(
         meteor.image,
@@ -296,6 +337,33 @@ function drawBackground(
       context.restore()
     }
   }
+  if (meteorChannel) {
+    meteorChannel.pointers = meteorPointers
+    meteorChannel.updatedAt = frame
+  }
+}
+
+const TEXT_INTERACTION_RADIUS = 80
+const TEXT_INTERACTION_FORCE = 1.8
+
+export function applyTextPointerForce(
+  particle: TextParticle,
+  pointerX: number,
+  pointerY: number
+): void {
+  const dx = particle.x - pointerX
+  const dy = particle.y - pointerY
+  const distanceSquared = dx * dx + dy * dy
+  if (
+    distanceSquared < TEXT_INTERACTION_RADIUS * TEXT_INTERACTION_RADIUS &&
+    distanceSquared > 1
+  ) {
+    const distance = Math.sqrt(distanceSquared)
+    const force =
+      (1 - distance / TEXT_INTERACTION_RADIUS) * TEXT_INTERACTION_FORCE
+    particle.vx += (dx / distance) * force
+    particle.vy += (dy / distance) * force
+  }
 }
 
 function drawText(
@@ -303,20 +371,16 @@ function drawText(
   width: number,
   height: number,
   particles: TextParticle[],
-  pointer: Pointer
+  pointer: Pointer,
+  meteorPointers: Array<{ x: number; y: number }>
 ): void {
   context.clearRect(0, 0, width, height)
   for (const particle of particles) {
     if (pointer.active) {
-      const dx = particle.x - pointer.x
-      const dy = particle.y - pointer.y
-      const distanceSquared = dx * dx + dy * dy
-      if (distanceSquared < 6400 && distanceSquared > 1) {
-        const distance = Math.sqrt(distanceSquared)
-        const force = (1 - distance / 80) * 1.8
-        particle.vx += (dx / distance) * force
-        particle.vy += (dy / distance) * force
-      }
+      applyTextPointerForce(particle, pointer.x, pointer.y)
+    }
+    for (const meteor of meteorPointers) {
+      applyTextPointerForce(particle, meteor.x, meteor.y)
     }
     particle.vx += (particle.targetX - particle.x) * 0.018
     particle.vy += (particle.targetY - particle.y) * 0.018
@@ -334,11 +398,15 @@ export function startHeroParticleEngine(
   backgroundCanvas: HTMLCanvasElement | null,
   textCanvas: HTMLCanvasElement | null,
   pointer: Pointer,
-  reducedMotion: boolean
+  reducedMotion: boolean,
+  meteorChannel: MeteorInteractionChannel | null = null
 ): () => void {
   const backgroundContext = backgroundCanvas?.getContext('2d') ?? null
   const textContext = textCanvas?.getContext('2d') ?? null
-  if ((!backgroundContext || !backgroundCanvas) && (!textContext || !textCanvas)) {
+  if (
+    (!backgroundContext || !backgroundCanvas) &&
+    (!textContext || !textCanvas)
+  ) {
     return () => undefined
   }
 
@@ -359,6 +427,10 @@ export function startHeroParticleEngine(
     frame = time
     if (time - lastRenderTime >= FRAME_INTERVAL) {
       lastRenderTime = time
+      const stageBounds =
+        (backgroundContext && meteorChannel) || textContext
+          ? stage.getBoundingClientRect()
+          : null
       if (backgroundContext) {
         drawBackground(
           backgroundContext,
@@ -368,10 +440,36 @@ export function startHeroParticleEngine(
           pointer,
           frame,
           meteors,
-          zoneGlows
+          zoneGlows,
+          stageBounds,
+          meteorChannel
         )
       }
-      if (textContext) drawText(textContext, width, height, textParticles, pointer)
+      if (textContext) {
+        const meteorPointers =
+          !reducedMotion && meteorChannel && stageBounds
+            ? meteorChannel.pointers
+                .filter(
+                  (meteor) =>
+                    meteor.x >= stageBounds.left - TEXT_INTERACTION_RADIUS &&
+                    meteor.x <= stageBounds.right + TEXT_INTERACTION_RADIUS &&
+                    meteor.y >= stageBounds.top - TEXT_INTERACTION_RADIUS &&
+                    meteor.y <= stageBounds.bottom + TEXT_INTERACTION_RADIUS
+                )
+                .map((meteor) => ({
+                  x: meteor.x - stageBounds.left,
+                  y: meteor.y - stageBounds.top,
+                }))
+            : []
+        drawText(
+          textContext,
+          width,
+          height,
+          textParticles,
+          pointer,
+          meteorPointers
+        )
+      }
     }
     if (!reducedMotion) animationId = window.requestAnimationFrame(render)
   }
@@ -457,6 +555,10 @@ export function startHeroParticleEngine(
   return () => {
     disposed = true
     window.cancelAnimationFrame(animationId)
+    if (backgroundContext && meteorChannel) {
+      meteorChannel.pointers = []
+      meteorChannel.updatedAt = 0
+    }
     observer.disconnect()
     window.removeEventListener('pointermove', handlePointerMove)
     window.removeEventListener('blur', clearPointer)

@@ -26,12 +26,17 @@ import { isLikelyHtml } from '@/lib/content-format'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { CTA, Features, Hero, HowItWorks, Stats } from './components'
+import type { MeteorInteractionChannel } from './components/hero-particle-engine'
 import { HeroParticleScene } from './components/hero-particle-scene'
 import { useHomePageContent } from './hooks'
 
 export function Home() {
   const { i18n, t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
+  const meteorChannelRef = useRef<MeteorInteractionChannel>({
+    pointers: [],
+    updatedAt: 0,
+  })
   const { resolvedTheme } = useTheme()
   const { auth } = useAuthStore()
   const isAuthenticated = !!auth.user
@@ -123,9 +128,15 @@ export function Home() {
   return (
     <PublicLayout showMainContainer={false}>
       <div className='relative isolate'>
-        <HeroParticleScene mode='background' />
+        <HeroParticleScene
+          mode='background'
+          meteorChannel={meteorChannelRef.current}
+        />
         <div className='relative z-10'>
-          <Hero isAuthenticated={isAuthenticated} />
+          <Hero
+            isAuthenticated={isAuthenticated}
+            meteorChannel={meteorChannelRef.current}
+          />
           <Stats />
           <Features />
           <HowItWorks />

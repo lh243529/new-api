@@ -18,10 +18,14 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useRef } from 'react'
 
-import { startHeroParticleEngine } from './hero-particle-engine'
+import {
+  type MeteorInteractionChannel,
+  startHeroParticleEngine,
+} from './hero-particle-engine'
 
 interface HeroParticleSceneProps {
   mode?: 'both' | 'background' | 'text'
+  meteorChannel?: MeteorInteractionChannel
 }
 
 export function HeroParticleScene(props: HeroParticleSceneProps) {
@@ -44,9 +48,10 @@ export function HeroParticleScene(props: HeroParticleSceneProps) {
       background,
       text,
       pointerRef.current,
-      reducedMotion
+      reducedMotion,
+      props.meteorChannel ?? null
     )
-  }, [props.mode])
+  }, [props.mode, props.meteorChannel])
 
   return (
     <div

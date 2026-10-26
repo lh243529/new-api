@@ -23,11 +23,13 @@ import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
 
+import type { MeteorInteractionChannel } from '../hero-particle-engine'
 import { HeroParticleScene } from '../hero-particle-scene'
 
 interface HeroProps {
   className?: string
   isAuthenticated?: boolean
+  meteorChannel?: MeteorInteractionChannel
 }
 
 // Stylized three-dots indicator representing "More"
@@ -49,7 +51,7 @@ export function Hero(props: HeroProps) {
 
   return (
     <section className='relative z-10 isolate min-h-[680px] overflow-hidden px-6 pt-24 pb-14 md:min-h-[760px] md:pt-28 md:pb-16'>
-      <HeroParticleScene mode='text' />
+      <HeroParticleScene mode='text' meteorChannel={props.meteorChannel} />
       <div className='relative z-10 mx-auto flex max-w-5xl flex-col items-center pt-[340px] text-center md:pt-[380px]'>
         <h1 className='sr-only'>灵渠API</h1>
         <div
@@ -57,15 +59,13 @@ export function Hero(props: HeroProps) {
           style={{ animationDelay: '180ms' }}
         >
           {props.isAuthenticated ? (
-            <>
-              <Button
-                className='group h-11 rounded-lg px-5 text-sm font-medium'
-                render={<Link to='/dashboard' />}
-              >
-                {t('Go to Dashboard')}
-                <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
-              </Button>
-            </>
+            <Button
+              className='group h-11 rounded-lg px-5 text-sm font-medium'
+              render={<Link to='/dashboard' />}
+            >
+              {t('Go to Dashboard')}
+              <ArrowRight className='ml-1.5 size-4 transition-transform duration-200 group-hover:translate-x-0.5' />
+            </Button>
           ) : (
             <>
               <Button
