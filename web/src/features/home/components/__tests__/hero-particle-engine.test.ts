@@ -104,6 +104,88 @@ describe('hero particle engine', () => {
     expect(disconnected).toBe(true)
   })
 
+  it('limits background and text draws to 90 FPS', () => {
+    const backgroundContext = createCanvasContext()
+    const textContext = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext')
+      .mockReturnValueOnce(backgroundContext)
+      .mockReturnValueOnce(textContext)
+    let renderFrame: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      renderFrame = callback
+      return 21
+    })
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 640,
+      bottom: 480,
+      width: 640,
+      height: 480,
+    } as DOMRect)
+    const cleanup = startHeroParticleEngine(
+      stage,
+      document.createElement('canvas'),
+      document.createElement('canvas'),
+      { x: -10000, y: -10000, active: false },
+      false
+    )
+
+    renderFrame?.(0)
+    expect(backgroundContext.clearRect).toHaveBeenCalledTimes(1)
+    expect(textContext.clearRect).toHaveBeenCalledTimes(1)
+    renderFrame?.(8)
+    expect(backgroundContext.clearRect).toHaveBeenCalledTimes(1)
+    expect(textContext.clearRect).toHaveBeenCalledTimes(1)
+    renderFrame?.(11)
+    expect(backgroundContext.clearRect).toHaveBeenCalledTimes(1)
+    expect(textContext.clearRect).toHaveBeenCalledTimes(1)
+    renderFrame?.(12)
+    expect(backgroundContext.clearRect).toHaveBeenCalledTimes(2)
+    expect(textContext.clearRect).toHaveBeenCalledTimes(2)
+
+    cleanup()
+  })
+
+  it('resumes drawing immediately when the page becomes visible again', () => {
+    const context = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    let renderFrame: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      renderFrame = callback
+      return 21
+    })
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined)
+    let hidden = false
+    vi.spyOn(document, 'hidden', 'get').mockImplementation(() => hidden)
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 640,
+      bottom: 480,
+      width: 640,
+      height: 480,
+    } as DOMRect)
+    const cleanup = startHeroParticleEngine(
+      stage,
+      document.createElement('canvas'),
+      document.createElement('canvas'),
+      { x: -10000, y: -10000, active: false },
+      false
+    )
+
+    hidden = true
+    document.dispatchEvent(new Event('visibilitychange'))
+    hidden = false
+    document.dispatchEvent(new Event('visibilitychange'))
+    renderFrame?.(0)
+
+    expect(context.clearRect).toHaveBeenCalledTimes(2)
+    cleanup()
+  })
+
   it('tracks pointer coordinates only while the pointer is over the hero', () => {
     const context = createCanvasContext()
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)

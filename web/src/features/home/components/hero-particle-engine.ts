@@ -47,6 +47,7 @@ const MODEL_ICON_PATHS = [
 
 const MAX_BACKGROUND_CANVAS_PIXELS = 3_000_000
 const MAX_TEXT_CANVAS_PIXELS = 2_000_000
+const FRAME_INTERVAL = 1000 / 90
 
 function getPixelRatio(
   width: number,
@@ -88,7 +89,7 @@ function createParticles(width: number, height: number): Particle[] {
     const yMin = (height * zone) / 3
     const yMax = (height * (zone + 1)) / 3
     const depth = Math.floor(Math.random() * 3)
-    const baseVx = 0.18 + Math.random() * 0.45
+    const baseVx = 0.24 + Math.random() * 0.56
     return {
       x: Math.random() * width,
       y: yMin + Math.random() * (yMax - yMin),
@@ -343,6 +344,7 @@ export function startHeroParticleEngine(
 
   let frame = 0
   let animationId = 0
+  let lastRenderTime = Number.NEGATIVE_INFINITY
   let width = 0
   let height = 0
   let backgroundParticles: Particle[] = []
@@ -355,19 +357,22 @@ export function startHeroParticleEngine(
   const render = (time: number) => {
     if (disposed || !pageVisible) return
     frame = time
-    if (backgroundContext) {
-      drawBackground(
-        backgroundContext,
-        width,
-        height,
-        backgroundParticles,
-        pointer,
-        frame,
-        meteors,
-        zoneGlows
-      )
+    if (time - lastRenderTime >= FRAME_INTERVAL) {
+      lastRenderTime = time
+      if (backgroundContext) {
+        drawBackground(
+          backgroundContext,
+          width,
+          height,
+          backgroundParticles,
+          pointer,
+          frame,
+          meteors,
+          zoneGlows
+        )
+      }
+      if (textContext) drawText(textContext, width, height, textParticles, pointer)
     }
-    if (textContext) drawText(textContext, width, height, textParticles, pointer)
     if (!reducedMotion) animationId = window.requestAnimationFrame(render)
   }
 
@@ -438,6 +443,7 @@ export function startHeroParticleEngine(
   const handleVisibilityChange = () => {
     pageVisible = !document.hidden
     if (pageVisible && !reducedMotion) {
+      lastRenderTime = Number.NEGATIVE_INFINITY
       animationId = window.requestAnimationFrame(render)
     } else {
       window.cancelAnimationFrame(animationId)
