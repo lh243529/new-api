@@ -26,7 +26,7 @@ import {
 
 const defaultSiteSettings: SiteSettings = {
   Notice: '',
-  SystemName: '灵渠API',
+  SystemName: '奇流API',
   Logo: '',
   Footer: '',
   About: '',

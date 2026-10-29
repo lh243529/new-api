@@ -21,7 +21,7 @@ For commercial licensing, please contact support@quantumnous.com
  */
 
 // System Configuration Defaults
-export const DEFAULT_SYSTEM_NAME = '灵渠API'
+export const DEFAULT_SYSTEM_NAME = '奇流API'
 export const DEFAULT_LOGO = '/logo.png'
 
 // LocalStorage Keys

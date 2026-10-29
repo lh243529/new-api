@@ -2,7 +2,7 @@
 
 set -e
 
-echo "Building 灵渠API Electron App..."
+echo "Building 奇流API Electron App..."
 
 echo "Step 1: Building frontend..."
 cd ../web

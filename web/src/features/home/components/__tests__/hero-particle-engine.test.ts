@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, assert, describe, expect, it, vi } from 'vitest'
 
 import {
   applyTextPointerForce,
@@ -25,8 +25,15 @@ function createCanvasContext(): CanvasRenderingContext2D {
     fill: vi.fn(),
     moveTo: vi.fn(),
     lineTo: vi.fn(),
+    closePath: vi.fn(),
     stroke: vi.fn(),
     fillText: vi.fn(),
+    measureText: vi.fn(
+      (text: string) =>
+        ({
+          width: text === '奇流' ? 50 : 100,
+        }) as TextMetrics
+    ),
     getImageData: vi.fn(() => ({ data }) as ImageData),
   } as unknown as CanvasRenderingContext2D
 }
@@ -39,6 +46,10 @@ describe('hero particle engine', () => {
 
   it('draws a static particle title when reduced motion is requested', () => {
     const context = createCanvasContext()
+    const textColors = new Set<string | CanvasGradient | CanvasPattern>()
+    vi.mocked(context.fillRect).mockImplementation((_x, _y, width, height) => {
+      if (width === 2 && height === 2) textColors.add(context.fillStyle)
+    })
     vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
     const requestAnimationFrame = vi.spyOn(window, 'requestAnimationFrame')
     const stage = document.createElement('div')
@@ -64,10 +75,112 @@ describe('hero particle engine', () => {
     expect(backgroundCanvas.width).toBe(640)
     expect(backgroundCanvas.height).toBe(480)
     expect(context.fillRect).toHaveBeenCalled()
-    expect(context.fillText).toHaveBeenCalledWith('灵渠API', 320, 201.6)
+    expect(context.fillText).toHaveBeenCalledWith('奇流API', 320, 201.6)
+    expect(context.measureText).toHaveBeenCalledWith('奇流API')
+    expect(context.measureText).toHaveBeenCalledWith('奇流')
+    expect(textColors).toEqual(
+      new Set(['rgba(125, 211, 252, 0.96)', 'rgba(249, 115, 22, 0.96)'])
+    )
     expect(requestAnimationFrame).not.toHaveBeenCalled()
     cleanup()
   })
+
+  it('fits the full title within a narrow canvas with room on both sides', () => {
+    const context = createCanvasContext()
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.mocked(context.measureText).mockImplementation((text) => {
+      const fontSize = Number(context.font.match(/([\d.]+)px/)?.[1])
+      return { width: fontSize * (text === '奇流' ? 2 : 4) } as TextMetrics
+    })
+    let drawnTextWidth = 0
+    vi.mocked(context.fillText).mockImplementation((text) => {
+      drawnTextWidth = context.measureText(text).width
+    })
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+      left: 0,
+      top: 0,
+      right: 390,
+      bottom: 480,
+      width: 390,
+      height: 480,
+    } as DOMRect)
+
+    const cleanup = startHeroParticleEngine(
+      stage,
+      null,
+      document.createElement('canvas'),
+      { x: -10000, y: -10000, active: false },
+      true
+    )
+
+    expect(context.fillText).toHaveBeenCalledWith('奇流API', 195, 201.6)
+    expect(drawnTextWidth).toBeGreaterThan(0)
+    expect(drawnTextWidth).toBeLessThanOrEqual(374)
+    cleanup()
+  })
+
+  it.each(['rgba(203, 213, 225, 0.98)', 'rgba(51, 65, 85, 0.98)'])(
+    'draws a smaller centered particle tagline in the supplied theme color %s',
+    (taglineColor) => {
+      const context = createCanvasContext()
+      const data = new Uint8ClampedArray(640 * 480 * 4)
+      data[(360 * 640 + 320) * 4 + 3] = 255
+      vi.mocked(context.getImageData).mockReturnValue({ data } as ImageData)
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+        context
+      )
+      const textDraws: Array<{
+        text: string
+        font: string
+        x: number
+        y: number
+      }> = []
+      vi.mocked(context.fillText).mockImplementation((text, x, y) => {
+        textDraws.push({ text, font: context.font, x, y })
+      })
+      const particleColors = new Set<string | CanvasGradient | CanvasPattern>()
+      vi.mocked(context.fillRect).mockImplementation(() => {
+        particleColors.add(context.fillStyle)
+      })
+      const requestAnimationFrame = vi.spyOn(window, 'requestAnimationFrame')
+      const stage = document.createElement('div')
+      vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: 640,
+        bottom: 480,
+        width: 640,
+        height: 480,
+      } as DOMRect)
+
+      const cleanup = startHeroParticleEngine(
+        stage,
+        null,
+        document.createElement('canvas'),
+        { x: -10000, y: -10000, active: false },
+        true,
+        null,
+        { tagline: '千奇汇流，一路直达', taglineColor }
+      )
+
+      const title = textDraws.find((draw) => draw.text === '奇流API')
+      const tagline = textDraws.find(
+        (draw) => draw.text === '千奇汇流，一路直达'
+      )
+      assert.isDefined(title)
+      assert.isDefined(tagline)
+      expect(tagline.x).toBe(320)
+      expect(tagline.y).toBeGreaterThan(title.y)
+      expect(tagline.y).toBeLessThan(480 * 0.75)
+      expect(Number(tagline.font.match(/([\d.]+)px/)?.[1])).toBeLessThan(
+        Number(title.font.match(/([\d.]+)px/)?.[1])
+      )
+      expect(particleColors).toEqual(new Set([taglineColor]))
+      expect(requestAnimationFrame).not.toHaveBeenCalled()
+      cleanup()
+    }
+  )
 
   it('cancels the active frame and disconnects the resize observer on cleanup', () => {
     const context = createCanvasContext()
@@ -201,8 +314,54 @@ describe('hero particle engine', () => {
       1,
       'rgba(217, 119, 87, 0.72)'
     )
+    const meteor = channel.pointers.at(-1)
+    assert.isDefined(meteor)
+    const x = meteor.x - 10
+    const y = meteor.y - 20
+    expect(context.moveTo).toHaveBeenCalledWith(x - 38 * 4.2, y)
+    expect(context.lineTo).toHaveBeenCalledWith(x, y - 38 / 8)
+    expect(context.lineTo).toHaveBeenLastCalledWith(x, y + 38 / 8)
+    expect(context.closePath).toHaveBeenCalledTimes(18)
+    expect(context.fill).toHaveBeenLastCalledWith()
     cleanup()
   })
+
+  it.each([
+    { width: 499, particleCount: 433, meteorCount: 10 },
+    { width: 500, particleCount: 667, meteorCount: 10 },
+    { width: 899, particleCount: 667, meteorCount: 18 },
+    { width: 900, particleCount: 1067, meteorCount: 18 },
+  ])(
+    'draws $particleCount background particles at width $width',
+    ({ width, particleCount, meteorCount }) => {
+      const context = createCanvasContext()
+      vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(
+        context
+      )
+      // A fixed random value disables particle halos, so each arc is one particle.
+      vi.spyOn(Math, 'random').mockReturnValue(0)
+      const stage = document.createElement('div')
+      vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue({
+        left: 0,
+        top: 0,
+        right: width,
+        bottom: 480,
+        width,
+        height: 480,
+      } as DOMRect)
+      const cleanup = startHeroParticleEngine(
+        stage,
+        document.createElement('canvas'),
+        null,
+        { x: -10000, y: -10000, active: false },
+        true
+      )
+
+      expect(context.arc).toHaveBeenCalledTimes(particleCount)
+      expect(context.createLinearGradient).toHaveBeenCalledTimes(meteorCount)
+      cleanup()
+    }
+  )
 
   it('repels text particles when a shared meteor crosses the title', () => {
     const context = createCanvasContext()

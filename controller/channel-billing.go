@@ -481,7 +481,7 @@ func updateChannelSub2APIBalance(channel *model.Channel) (float64, error) {
 func updateChannelNewAPIBalance(channel *model.Channel) (float64, error) {
 	baseURL := strings.TrimRight(channel.GetBaseURL(), "/")
 	if baseURL == "" {
-		return 0, errors.New("灵渠API channel is missing base_url")
+		return 0, errors.New("奇流API channel is missing base_url")
 	}
 	body, err := GetResponseBody("GET", baseURL+"/api/usage/token/", channel, GetAuthHeader(channel.Key))
 	if err != nil {
@@ -502,7 +502,7 @@ func updateChannelNewAPIBalance(channel *model.Channel) (float64, error) {
 		return 0, err
 	}
 	if !usage.Code {
-		return 0, fmt.Errorf("灵渠API usage query failed: %s", usage.Message)
+		return 0, fmt.Errorf("奇流API usage query failed: %s", usage.Message)
 	}
 	remaining := usage.Data.TotalAvailable
 	if usage.Data.UnlimitedQuota {
@@ -528,7 +528,7 @@ func updateChannelNewAPIBalance(channel *model.Channel) (float64, error) {
 		return 0, err
 	}
 	if status.Data.QuotaPerUnit <= 0 {
-		return 0, errors.New("灵渠API /api/status response is missing quota_per_unit")
+		return 0, errors.New("奇流API /api/status response is missing quota_per_unit")
 	}
 	balance := remaining / status.Data.QuotaPerUnit
 	channel.UpdateBalance(balance)

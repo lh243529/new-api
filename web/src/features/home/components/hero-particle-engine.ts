@@ -21,6 +21,12 @@ type TextParticle = {
   vx: number
   vy: number
   color: string
+  size?: number
+}
+
+type TextOptions = {
+  tagline?: string
+  taglineColor?: string
 }
 
 type RGB = readonly [number, number, number]
@@ -95,9 +101,9 @@ function createMeteors(width: number): Meteor[] {
 }
 
 function getParticleCount(width: number): number {
-  if (width < 500) return 650
-  if (width < 900) return 1000
-  return 1600
+  if (width < 500) return 433
+  if (width < 900) return 667
+  return 1067
 }
 
 function createParticles(width: number, height: number): Particle[] {
@@ -125,7 +131,11 @@ function createParticles(width: number, height: number): Particle[] {
   })
 }
 
-function createTextParticles(width: number, height: number): TextParticle[] {
+function createTextParticles(
+  width: number,
+  height: number,
+  textOptions: TextOptions
+): TextParticle[] {
   const offscreen = document.createElement('canvas')
   offscreen.width = Math.ceil(width)
   offscreen.height = Math.ceil(height)
@@ -134,22 +144,45 @@ function createTextParticles(width: number, height: number): TextParticle[] {
   })
   if (!offscreenContext) return []
 
-  const fontSize = Math.max(52, Math.min(196, width * 0.28, height * 0.4))
+  let fontSize = Math.max(52, Math.min(196, width * 0.28, height * 0.4))
   offscreenContext.font = `700 ${fontSize}px "Public Sans", "Microsoft YaHei", sans-serif`
   offscreenContext.textAlign = 'center'
   offscreenContext.textBaseline = 'middle'
   offscreenContext.fillStyle = '#fff'
-  offscreenContext.fillText('灵渠API', width / 2, height * 0.42)
-
-  const fullTextWidth =
+  let fullTextWidth =
     typeof offscreenContext.measureText === 'function'
-      ? offscreenContext.measureText('灵渠API').width
+      ? offscreenContext.measureText('奇流API').width
       : width * 0.5
+  if (fullTextWidth > width * 0.94) {
+    fontSize = (fontSize * width * 0.94) / fullTextWidth
+    offscreenContext.font = `700 ${fontSize}px "Public Sans", "Microsoft YaHei", sans-serif`
+    fullTextWidth = offscreenContext.measureText('奇流API').width
+  }
+  offscreenContext.fillText('奇流API', width / 2, height * 0.42)
+
   const prefixWidth =
     typeof offscreenContext.measureText === 'function'
-      ? offscreenContext.measureText('灵渠').width
+      ? offscreenContext.measureText('奇流').width
       : fullTextWidth * 0.5
   const colorBoundary = width / 2 - fullTextWidth / 2 + prefixWidth
+
+  let taglineBoundary = height
+  if (textOptions.tagline) {
+    let taglineFontSize = Math.min(width < 768 ? 30 : 56, width * 0.08)
+    offscreenContext.font = `700 ${taglineFontSize}px "Public Sans", "Microsoft YaHei", sans-serif`
+    const taglineWidth = offscreenContext.measureText(textOptions.tagline).width
+    if (taglineWidth > width * 0.88) {
+      taglineFontSize *= (width * 0.88) / taglineWidth
+      offscreenContext.font = `700 ${taglineFontSize}px "Public Sans", "Microsoft YaHei", sans-serif`
+    }
+    const titleBottom = height * 0.42 + fontSize * 0.5
+    const taglineY = Math.max(
+      height * (width < 768 ? 0.55 : 0.6),
+      titleBottom + taglineFontSize * 0.5 + 12
+    )
+    taglineBoundary = (titleBottom + taglineY - taglineFontSize * 0.7) / 2
+    offscreenContext.fillText(textOptions.tagline, width / 2, taglineY)
+  }
 
   const pixels = offscreenContext.getImageData(
     0,
@@ -159,18 +192,24 @@ function createTextParticles(width: number, height: number): TextParticle[] {
   )
   const step = width < 500 ? 4 : 3
   const points: TextParticle[] = []
-  for (let y = 0; y < offscreen.height; y += step) {
-    for (let x = 0; x < offscreen.width; x += step) {
+  for (let y = 0; y < offscreen.height; y++) {
+    const isTagline = y >= taglineBoundary
+    const sampleStep = isTagline ? 2 : step
+    if (y % sampleStep !== 0) continue
+    for (let x = 0; x < offscreen.width; x += sampleStep) {
       const alpha = pixels.data[(y * offscreen.width + x) * 4 + 3]
       if (alpha < 96) continue
       const targetX = x
       const targetY = y
       const angle = Math.random() * Math.PI * 2
       const distance = 24 + Math.random() * Math.min(width * 0.15, 120)
-      const color =
-        targetX <= colorBoundary
-          ? 'rgba(125, 211, 252, 0.96)'
-          : 'rgba(249, 115, 22, 0.96)'
+      let color = textOptions.taglineColor ?? 'rgba(51, 65, 85, 0.98)'
+      if (!isTagline) {
+        color =
+          targetX <= colorBoundary
+            ? 'rgba(125, 211, 252, 0.96)'
+            : 'rgba(249, 115, 22, 0.96)'
+      }
       points.push({
         x: targetX + Math.cos(angle) * distance,
         y: targetY + Math.sin(angle) * distance,
@@ -179,6 +218,7 @@ function createTextParticles(width: number, height: number): TextParticle[] {
         vx: 0,
         vy: 0,
         color,
+        size: isTagline ? 1.5 : 2,
       })
     }
   }
@@ -302,6 +342,7 @@ function drawBackground(
       })
     }
     const trailLength = meteor.size * 4.2
+    const trailHalfWidth = meteor.size / 8
     const [red, green, blue] = meteor.trailColor
     const trail = context.createLinearGradient(
       cometX - trailLength,
@@ -311,12 +352,13 @@ function drawBackground(
     )
     trail.addColorStop(0, `rgba(${red}, ${green}, ${blue}, 0)`)
     trail.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0.72)`)
-    context.strokeStyle = trail
-    context.lineWidth = 1.5
+    context.fillStyle = trail
     context.beginPath()
     context.moveTo(cometX - trailLength, cometY)
-    context.lineTo(cometX, cometY)
-    context.stroke()
+    context.lineTo(cometX, cometY - trailHalfWidth)
+    context.lineTo(cometX, cometY + trailHalfWidth)
+    context.closePath()
+    context.fill()
 
     if (
       meteor.image.complete &&
@@ -389,7 +431,8 @@ function drawText(
     particle.x += particle.vx
     particle.y += particle.vy
     context.fillStyle = particle.color
-    context.fillRect(particle.x, particle.y, 2, 2)
+    const size = particle.size ?? 2
+    context.fillRect(particle.x, particle.y, size, size)
   }
 }
 
@@ -399,7 +442,8 @@ export function startHeroParticleEngine(
   textCanvas: HTMLCanvasElement | null,
   pointer: Pointer,
   reducedMotion: boolean,
-  meteorChannel: MeteorInteractionChannel | null = null
+  meteorChannel: MeteorInteractionChannel | null = null,
+  textOptions: TextOptions = {}
 ): () => void {
   const backgroundContext = backgroundCanvas?.getContext('2d') ?? null
   const textContext = textCanvas?.getContext('2d') ?? null
@@ -504,7 +548,7 @@ export function startHeroParticleEngine(
         MAX_TEXT_CANVAS_PIXELS
       )
       resizeCanvas(textCanvas, textContext, width, height, textPixelRatio)
-      textParticles = createTextParticles(width, height)
+      textParticles = createTextParticles(width, height, textOptions)
     }
     if (reducedMotion) {
       for (const particle of textParticles) {

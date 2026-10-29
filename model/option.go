@@ -216,8 +216,8 @@ func loadOptionsFromDatabase() {
 			continue
 		}
 		value := option.Value
-		if option.Key == "SystemName" && value == "New API" {
-			value = "灵渠API"
+		if option.Key == "SystemName" && (value == "New API" || value == "灵渠API") {
+			value = "奇流API"
 		}
 		err := updateOptionMap(option.Key, value)
 		if err != nil {

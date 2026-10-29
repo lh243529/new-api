@@ -48,12 +48,18 @@ const MoreIcon = () => (
 
 export function Hero(props: HeroProps) {
   const { t } = useTranslation()
+  const tagline = t('A thousand possibilities, one direct path')
 
   return (
-    <section className='relative z-10 isolate min-h-[680px] overflow-hidden px-6 pt-24 pb-14 md:min-h-[760px] md:pt-28 md:pb-16'>
-      <HeroParticleScene mode='text' meteorChannel={props.meteorChannel} />
+    <section className='relative isolate z-10 min-h-[680px] overflow-hidden px-6 pt-24 pb-14 md:min-h-[760px] md:pt-28 md:pb-16'>
+      <HeroParticleScene
+        mode='text'
+        meteorChannel={props.meteorChannel}
+        tagline={tagline}
+      />
       <div className='relative z-10 mx-auto flex max-w-5xl flex-col items-center pt-[340px] text-center md:pt-[380px]'>
-        <h1 className='sr-only'>灵渠API</h1>
+        <h1 className='sr-only'>奇流API</h1>
+        <p className='sr-only'>{tagline}</p>
         <div
           className='landing-animate-fade-up mt-8 flex flex-wrap items-center justify-center gap-3 opacity-0'
           style={{ animationDelay: '180ms' }}

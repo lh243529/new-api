@@ -2,6 +2,7 @@ package model
 
 import (
 	"fmt"
+	"maps"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -177,4 +178,39 @@ func TestRetiredThemeOptionIsPersistedButNotPublished(t *testing.T) {
 	assert.Equal(t, "default", requireOptionValue(t, db, retiredThemeOptionKey))
 	_, published := common.OptionMap[retiredThemeOptionKey]
 	assert.False(t, published)
+}
+
+func TestLoadOptionsRebrandsOnlyLegacySystemNames(t *testing.T) {
+	db := useFrontendOptionMigrationDB(t)
+	previousName := common.SystemName
+	previousMap := common.OptionMap
+	previousSnapshot := CurrentRequestPolicy()
+	common.OptionMap = maps.Clone(previousMap)
+	if common.OptionMap == nil {
+		common.OptionMap = make(map[string]string)
+	}
+	t.Cleanup(func() {
+		common.SystemName = previousName
+		common.OptionMap = previousMap
+		requestPolicySnapshot.Store(previousSnapshot)
+	})
+	for _, tc := range []struct {
+		stored  string
+		display string
+	}{
+		{stored: "New API", display: "奇流API"},
+		{stored: "灵渠API", display: "奇流API"},
+		{stored: "奇流API", display: "奇流API"},
+		{stored: "灵渠API 私有站", display: "灵渠API 私有站"},
+		{stored: "Custom Gateway", display: "Custom Gateway"},
+	} {
+		t.Run(tc.stored, func(t *testing.T) {
+			require.NoError(t, db.Save(&Option{Key: "SystemName", Value: tc.stored}).Error)
+			loadOptionsFromDatabase()
+			loadOptionsFromDatabase()
+			assert.Equal(t, tc.display, common.SystemName)
+			assert.Equal(t, tc.display, common.OptionMap["SystemName"])
+			assert.Equal(t, tc.stored, requireOptionValue(t, db, "SystemName"))
+		})
+	}
 }

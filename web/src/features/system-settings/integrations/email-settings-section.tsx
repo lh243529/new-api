@@ -317,7 +317,7 @@ export function EmailSettingsSection({
                         {...field}
                         autoComplete='off'
                         disabled={isSaving}
-                        placeholder='灵渠API'
+                        placeholder='奇流API'
                       />
                     </FormControl>
                     <FormDescription>

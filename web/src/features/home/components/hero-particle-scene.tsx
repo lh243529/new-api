@@ -18,6 +18,8 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { useEffect, useRef } from 'react'
 
+import { useTheme } from '@/context/theme-provider'
+
 import {
   type MeteorInteractionChannel,
   startHeroParticleEngine,
@@ -26,9 +28,18 @@ import {
 interface HeroParticleSceneProps {
   mode?: 'both' | 'background' | 'text'
   meteorChannel?: MeteorInteractionChannel
+  tagline?: string
 }
 
 export function HeroParticleScene(props: HeroParticleSceneProps) {
+  const { resolvedTheme } = useTheme()
+  let taglineColor: string | undefined
+  if (props.tagline) {
+    taglineColor =
+      resolvedTheme === 'dark'
+        ? 'rgba(203, 213, 225, 0.98)'
+        : 'rgba(51, 65, 85, 0.98)'
+  }
   const stageRef = useRef<HTMLDivElement>(null)
   const backgroundRef = useRef<HTMLCanvasElement>(null)
   const textRef = useRef<HTMLCanvasElement>(null)
@@ -49,9 +60,10 @@ export function HeroParticleScene(props: HeroParticleSceneProps) {
       text,
       pointerRef.current,
       reducedMotion,
-      props.meteorChannel ?? null
+      props.meteorChannel ?? null,
+      { tagline: props.tagline, taglineColor }
     )
-  }, [props.mode, props.meteorChannel])
+  }, [props.mode, props.meteorChannel, props.tagline, taglineColor])
 
   return (
     <div
