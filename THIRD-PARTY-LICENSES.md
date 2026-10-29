@@ -8,6 +8,11 @@ Transitive dependencies should be audited before a final external release.
 
 ## Dependency Inventory
 
+The login and registration WAVES background uses `vanta@0.5.24` and `three@0.134.0`
+(both MIT). Their complete copyright and license notices ship in
+`web/public/licenses/vanta-three.txt`, available as `/licenses/vanta-three.txt` in
+distributed frontend builds. `@types/three@0.134.0` is a development-only MIT dependency.
+
 | Area     | Scope       | Ecosystem | Dependency                                              | Version                              | License                 |
 |----------|-------------|-----------|---------------------------------------------------------|--------------------------------------|-------------------------|
 | backend  | production  | Go        | `github.com/Azure/go-ntlmssp`                           | `v0.1.1`                             | MIT                     |
