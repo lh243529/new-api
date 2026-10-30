@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { act, render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { createInstance } from 'i18next'
 import { I18nextProvider, initReactI18next } from 'react-i18next'
 import { beforeEach, expect, it, vi } from 'vitest'
@@ -160,6 +161,10 @@ it.each(['https://shop.example.test/topup', 'http://shop.example.test/topup'])(
     expect(iframe).toHaveAttribute('src', source)
     expect(iframe).toHaveAttribute('height', '700')
     expect(iframe).toHaveClass('h-[700px]', 'w-full', 'shrink-0')
+    expect(screen.getByRole('button', { name: '回到购买页' })).toHaveAttribute(
+      'type',
+      'button'
+    )
     const permissions = iframe.getAttribute('sandbox')?.split(' ')
     expect(permissions).toEqual(
       expect.arrayContaining([
@@ -175,7 +180,61 @@ it.each(['https://shop.example.test/topup', 'http://shop.example.test/topup'])(
   }
 )
 
+it('returns the embed to the configured purchase page on every click without navigating the wallet', async () => {
+  const user = userEvent.setup()
+  const source = 'https://shop.example.test/topup'
+  render(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink={`  ${source}  `} />
+    </I18nextProvider>
+  )
+  const walletUrl = window.location.href
+  const button = screen.getByRole('button', { name: '回到购买页' })
+  let previous = screen.getByTitle('充值链接')
+  const permissions = previous.getAttribute('sandbox')
+
+  for (let click = 0; click < 2; click++) {
+    await user.click(button)
+    const current = screen.getByTitle('充值链接')
+    expect(previous).not.toBeInTheDocument()
+    expect(current).toHaveAttribute('src', source)
+    expect(current).toHaveAttribute('height', '700')
+    expect(current).toHaveAttribute('sandbox', permissions)
+    expect(button).toHaveFocus()
+    expect(window.location.href).toBe(walletUrl)
+    previous = current
+  }
+})
+
+it('supports returning to the purchase page with the keyboard and translates the button without reloading the embed', async () => {
+  const user = userEvent.setup()
+  render(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink='https://shop.example.test/topup' />
+    </I18nextProvider>
+  )
+  const button = screen.getByRole('button', { name: '回到购买页' })
+  await user.tab()
+  expect(button).toHaveFocus()
+  for (const key of ['{Enter}', ' ']) {
+    const previous = screen.getByTitle('充值链接')
+    await user.keyboard(key)
+    expect(previous).not.toBeInTheDocument()
+    expect(screen.getByTitle('充值链接')).toHaveAttribute(
+      'src',
+      'https://shop.example.test/topup'
+    )
+  }
+  const current = screen.getByTitle('充值链接')
+  await act(() => i18n.changeLanguage('en'))
+  expect(screen.getByRole('button', { name: 'Back to purchase page' })).toBe(
+    button
+  )
+  expect(screen.getByTitle('Top-Up Link')).toBe(current)
+})
+
 it('isolates same-origin embeds and replaces or removes the iframe as configuration changes', async () => {
+  const user = userEvent.setup()
   const { rerender } = render(
     <I18nextProvider i18n={i18n}>
       <TopupLinkFrame topupLink='https://shop.example.test/first' />
@@ -195,15 +254,25 @@ it('isolates same-origin embeds and replaces or removes the iframe as configurat
   expect(current.getAttribute('sandbox')?.split(' ')).not.toContain(
     'allow-same-origin'
   )
+  await user.click(screen.getByRole('button', { name: '回到购买页' }))
+  const restored = screen.getByTitle('充值链接')
+  expect(current).not.toBeInTheDocument()
+  expect(restored).toHaveAttribute('src', localUrl)
+  expect(restored.getAttribute('sandbox')?.split(' ')).not.toContain(
+    'allow-same-origin'
+  )
   await act(() => i18n.changeLanguage('en'))
-  expect(screen.getByTitle('Top-Up Link')).toBe(current)
+  expect(screen.getByTitle('Top-Up Link')).toBe(restored)
   rerender(
     <I18nextProvider i18n={i18n}>
       <TopupLinkFrame topupLink='' />
     </I18nextProvider>
   )
-  expect(current).not.toBeInTheDocument()
+  expect(restored).not.toBeInTheDocument()
   expect(screen.queryByTitle('Top-Up Link')).toBeNull()
+  expect(
+    screen.queryByRole('button', { name: 'Back to purchase page' })
+  ).not.toBeInTheDocument()
   rerender(
     <I18nextProvider i18n={i18n}>
       <TopupLinkFrame topupLink='invalid' />

@@ -16,8 +16,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
+import { Button } from '@/components/ui/button'
 import { isHttpUrl } from '@/lib/content-format'
 
 interface TopupLinkFrameProps {
@@ -26,6 +28,7 @@ interface TopupLinkFrameProps {
 
 export function TopupLinkFrame(props: TopupLinkFrameProps) {
   const { t } = useTranslation()
+  const [reloadCount, setReloadCount] = useState(0)
   const source = props.topupLink?.trim()
   if (!source || !isHttpUrl(source)) return null
 
@@ -43,10 +46,20 @@ export function TopupLinkFrame(props: TopupLinkFrameProps) {
   }
 
   return (
-    <section className='space-y-3'>
-      <h3 className='text-base font-semibold'>{t('Get Redemption Code')}</h3>
+    <section className='flex flex-col gap-3'>
+      <div className='flex flex-wrap items-center gap-3'>
+        <h3 className='text-base font-semibold'>{t('Get Redemption Code')}</h3>
+        <Button
+          type='button'
+          variant='outline'
+          size='sm'
+          onClick={() => setReloadCount((count) => count + 1)}
+        >
+          {t('Back to purchase page')}
+        </Button>
+      </div>
       <iframe
-        key={source}
+        key={`${source}:${reloadCount}`}
         src={source}
         title={t('Top-Up Link')}
         height={700}
