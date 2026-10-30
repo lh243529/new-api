@@ -27,6 +27,7 @@ import zh from '@/i18n/locales/zh.json'
 import { api } from '@/lib/api'
 
 import { RechargeFormCard } from '../components/recharge-form-card'
+import { TopupLinkFrame } from '../components/topup-link-frame'
 
 const i18n = createInstance()
 
@@ -125,3 +126,88 @@ it.each([
     expect(screen.getByPlaceholderText('Minimum 1')).toBeVisible()
   }
 )
+
+it.each([
+  undefined,
+  '',
+  '   ',
+  'not a link',
+  'example.com/topup',
+  '/topup',
+  '//shop.example.test/topup',
+  'https://',
+  'javascript:alert(1)',
+  'data:text/html,<h1>topup</h1>',
+  'ftp://shop.example.test/topup',
+])('does not reserve space for an invalid top-up link: %s', (topupLink) => {
+  const { container } = render(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink={topupLink} />
+    </I18nextProvider>
+  )
+  expect(container).toBeEmptyDOMElement()
+})
+
+it.each(['https://shop.example.test/topup', 'http://shop.example.test/topup'])(
+  'embeds a valid shop with the fixed height and payment capabilities: %s',
+  (source) => {
+    render(
+      <I18nextProvider i18n={i18n}>
+        <TopupLinkFrame topupLink={`  ${source}  `} />
+      </I18nextProvider>
+    )
+    const iframe = screen.getByTitle('充值链接')
+    expect(iframe).toHaveAttribute('src', source)
+    expect(iframe).toHaveAttribute('height', '700')
+    expect(iframe).toHaveClass('h-[700px]', 'w-full', 'shrink-0')
+    const permissions = iframe.getAttribute('sandbox')?.split(' ')
+    expect(permissions).toEqual(
+      expect.arrayContaining([
+        'allow-forms',
+        'allow-scripts',
+        'allow-popups',
+        'allow-popups-to-escape-sandbox',
+        'allow-top-navigation-by-user-activation',
+        'allow-same-origin',
+      ])
+    )
+    expect(permissions).not.toContain('allow-top-navigation')
+  }
+)
+
+it('isolates same-origin embeds and replaces or removes the iframe as configuration changes', async () => {
+  const { rerender } = render(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink='https://shop.example.test/first' />
+    </I18nextProvider>
+  )
+  const previous = screen.getByTitle('充值链接')
+  const localUrl = new URL('/topup', window.location.href).href
+  rerender(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink={localUrl} />
+    </I18nextProvider>
+  )
+  const current = screen.getByTitle('充值链接')
+  expect(current).not.toBe(previous)
+  expect(previous).not.toBeInTheDocument()
+  expect(current).toHaveAttribute('src', localUrl)
+  expect(current.getAttribute('sandbox')?.split(' ')).not.toContain(
+    'allow-same-origin'
+  )
+  await act(() => i18n.changeLanguage('en'))
+  expect(screen.getByTitle('Top-Up Link')).toBe(current)
+  rerender(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink='' />
+    </I18nextProvider>
+  )
+  expect(current).not.toBeInTheDocument()
+  expect(screen.queryByTitle('Top-Up Link')).toBeNull()
+  rerender(
+    <I18nextProvider i18n={i18n}>
+      <TopupLinkFrame topupLink='invalid' />
+    </I18nextProvider>
+  )
+  expect(screen.queryByTitle('Top-Up Link')).toBeNull()
+})

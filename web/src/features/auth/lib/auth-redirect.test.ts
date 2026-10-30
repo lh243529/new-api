@@ -67,18 +67,18 @@ describe('saved authentication language', () => {
     expect(
       getSavedLanguage({
         ...user,
-        language: 'ja',
+        language: 'zhCN',
         setting: { language: 'fr' },
       })
-    ).toBe('ja')
+    ).toBe('zhCN')
   })
 
   test('reads object and JSON string settings', () => {
-    expect(getSavedLanguage({ ...user, setting: { language: 'fr' } })).toBe(
-      'fr'
+    expect(getSavedLanguage({ ...user, setting: { language: 'zhTW' } })).toBe(
+      'zhCN'
     )
     expect(getSavedLanguage({ ...user, setting: '{"language":"ru"}' })).toBe(
-      'ru'
+      'en'
     )
   })
 

@@ -31,6 +31,7 @@ import { PaymentConfirmDialog } from './components/dialogs/payment-confirm-dialo
 import { TransferDialog } from './components/dialogs/transfer-dialog'
 import { RechargeFormCard } from './components/recharge-form-card'
 import { SubscriptionPlansCard } from './components/subscription-plans-card'
+import { TopupLinkFrame } from './components/topup-link-frame'
 import { WalletStatsCard } from './components/wallet-stats-card'
 import { DEFAULT_DISCOUNT_RATE, PAYMENT_TYPES } from './constants'
 import {
@@ -297,7 +298,10 @@ export function Wallet(props: WalletProps) {
                   : 'grid gap-4'
               }
             >
-              <div id='wallet-add-funds' className='scroll-mt-4'>
+              <div
+                id='wallet-add-funds'
+                className='flex min-w-0 scroll-mt-4 flex-col gap-4'
+              >
                 <RechargeFormCard
                   topupInfo={topupInfo}
                   presetAmounts={presetAmounts}
@@ -328,6 +332,9 @@ export function Wallet(props: WalletProps) {
                   enableWaffoPancakeTopup={
                     topupInfo?.enable_waffo_pancake_topup
                   }
+                />
+                <TopupLinkFrame
+                  topupLink={topupLoading ? undefined : topupInfo?.topup_link}
                 />
               </div>
 

@@ -36,7 +36,10 @@ export function CTA(props: CTAProps) {
   }
 
   return (
-    <section className='relative z-10 overflow-hidden px-6 py-24 md:py-32'>
+    <section
+      aria-labelledby='home-cta-title'
+      className='relative z-10 overflow-hidden px-6 py-24 md:py-32'
+    >
       {/* Gradient mesh background */}
       <div
         aria-hidden
@@ -53,16 +56,19 @@ export function CTA(props: CTAProps) {
         className='mx-auto max-w-2xl text-center'
         animation='scale-in'
       >
-        <h2 className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'>
-          {t('Ready to simplify')}
+        <h2
+          id='home-cta-title'
+          className='text-2xl leading-tight font-bold tracking-tight md:text-4xl'
+        >
+          {t('Many models, one flow.')}
           <br />
-          <span className='bg-gradient-to-r from-blue-400 via-violet-400 to-purple-500 bg-clip-text text-transparent'>
-            {t('your AI integration?')}
+          <span className='bg-gradient-to-r from-blue-600 via-violet-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:via-violet-400 dark:to-purple-400'>
+            {t('Start here with QiFlow.')}
           </span>
         </h2>
         <p className='text-muted-foreground/80 mx-auto mt-5 max-w-md text-sm leading-relaxed md:text-base'>
           {t(
-            'Deploy your own gateway and start routing requests through your configured upstream services.'
+            'Pick a model, connect your tool or app, and make your next API call through QiFlow.'
           )}
         </p>
         <div className='mt-8 flex items-center justify-center gap-3'>

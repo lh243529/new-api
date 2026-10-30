@@ -20,7 +20,15 @@ For commercial licensing, please contact support@quantumnous.com
  * Home page constants
  * All hardcoded data for home page sections
  */
-import { type TFunction } from 'i18next'
+import type { TFunction } from 'i18next'
+
+export const HOME_PROVIDERS = [
+  { name: 'OpenAI', icon: '/model/openai.svg', monochrome: true },
+  { name: 'Claude', icon: '/model/claude.svg', monochrome: false },
+  { name: 'DeepSeek', icon: '/model/deepseek.svg', monochrome: false },
+  { name: 'Zhipu', icon: '/model/zhipu.svg', monochrome: false },
+  { name: 'XAI', icon: '/model/xai.svg', monochrome: true },
+] as const
 
 // Layout - Main base classes
 export const MAIN_BASE_CLASSES = 'bg-background text-foreground w-full'

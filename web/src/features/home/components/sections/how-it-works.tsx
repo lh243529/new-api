@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Settings, Zap, BarChart3 } from 'lucide-react'
+import { Wallet, KeyRound, Plug } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 
 import { AnimateInView } from '@/components/animate-in-view'
@@ -27,37 +27,43 @@ export function HowItWorks() {
   const steps = [
     {
       num: '1',
-      title: t('Configure'),
-      desc: t(
-        'Add your API keys, set up channels and configure access permissions'
-      ),
-      icon: <Settings className='size-6' strokeWidth={1.5} />,
+      title: t('Sign up and add funds'),
+      desc: t('Create your QiFlow account and add funds in your wallet.'),
+      icon: <Wallet aria-hidden='true' className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '2',
-      title: t('Connect'),
-      desc: t(
-        'Connect through OpenAI, Claude, Gemini, and other compatible API routes'
+      title: t('Create an API key'),
+      desc: t('Create a key in API key management for your model requests.'),
+      icon: (
+        <KeyRound aria-hidden='true' className='size-6' strokeWidth={1.5} />
       ),
-      icon: <Zap className='size-6' strokeWidth={1.5} />,
     },
     {
       num: '3',
-      title: t('Monitor'),
-      desc: t('Track usage, costs and performance with real-time analytics'),
-      icon: <BarChart3 className='size-6' strokeWidth={1.5} />,
+      title: t('Connect your tool or app'),
+      desc: t(
+        'Enter the endpoint, API key, and model as required by your tool or app, then start using it.'
+      ),
+      icon: <Plug aria-hidden='true' className='size-6' strokeWidth={1.5} />,
     },
   ]
 
   return (
-    <section className='border-border/40 relative z-10 border-t px-6 py-24 md:py-32'>
+    <section
+      aria-labelledby='home-steps-title'
+      className='border-border/40 relative z-10 border-t px-6 py-24 md:py-32'
+    >
       <div className='mx-auto max-w-6xl'>
         <AnimateInView className='mb-16 text-center md:mb-20'>
           <p className='text-muted-foreground mb-3 text-xs font-medium tracking-widest uppercase'>
             {t('How It Works')}
           </p>
-          <h2 className='text-2xl font-bold tracking-tight md:text-3xl'>
-            {t('Three steps to get started')}
+          <h2
+            id='home-steps-title'
+            className='text-2xl font-bold tracking-tight md:text-3xl'
+          >
+            {t('Three steps to bring models into your workflow')}
           </h2>
         </AnimateInView>
 
