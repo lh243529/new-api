@@ -27,12 +27,16 @@ import { useMediaQuery } from '@/hooks'
 import { toIntlLocale } from '@/i18n/languages'
 import { getUserGroups } from '@/lib/api'
 import { getCurrencyDisplay } from '@/lib/currency'
-import { requireServerSuccess } from '@/lib/server-error-message'
+import {
+  requireServerSuccess,
+  translateServerText,
+} from '@/lib/server-error-message'
 import { useSystemConfigStore } from '@/stores/system-config-store'
 
 import { API_KEY_STATUSES } from '../constants'
 import type { ApiKey } from '../types'
-import { ApiKeyGroupCell } from './api-key-group-cell'
+import type { ApiKeyGroupOption } from './api-key-group-combobox'
+import { ApiKeyGroupSelector } from './api-key-group-selector'
 import { ApiKeyQuotaCell } from './api-key-quota-cell'
 import {
   ApiKeyActivityCell,
@@ -45,26 +49,33 @@ import {
 } from './api-keys-cells'
 import { DataTableRowActions } from './data-table-row-actions'
 
-const EMPTY_GROUP_RATIOS: Record<string, number | string> = {}
-
-function useGroupRatios(): Record<string, number | string> {
-  const { data } = useQuery({
+function useGroupOptions() {
+  const { t } = useTranslation()
+  const { data, isPending, isError } = useQuery({
     queryKey: ['user-groups'],
     queryFn: async () => requireServerSuccess(await getUserGroups()),
     staleTime: 0,
-    select: (res) => {
-      if (!res.success || !res.data) return {}
-      const ratios: Record<string, number | string> = {}
-      for (const [group, info] of Object.entries(res.data)) {
-        if (typeof info.ratio === 'number' || typeof info.ratio === 'string') {
-          ratios[group] = info.ratio
-        }
-      }
-      return ratios
-    },
   })
-
-  return data ?? EMPTY_GROUP_RATIOS
+  const options = useMemo<ApiKeyGroupOption[]>(
+    () => [
+      { value: '', label: t('Follow user group') },
+      ...Object.entries(data?.data ?? {}).map(([group, info]) => ({
+        value: group,
+        label: group,
+        desc: info.desc ? translateServerText(t, info.desc) : group,
+        ratio: info.ratio,
+      })),
+    ],
+    [data, t]
+  )
+  const ratios = useMemo(() => {
+    const values: Record<string, number | string> = {}
+    for (const option of options) {
+      if (option.ratio !== undefined) values[option.value] = option.ratio
+    }
+    return values
+  }, [options])
+  return { options, ratios, disabled: isPending || isError }
 }
 
 export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
@@ -72,7 +83,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
   useSystemConfigStore((state) => state.config.currency)
   const { meta: currency } = getCurrencyDisplay()
   const quotaUnit = currency.kind === 'tokens' ? t('Tokens') : currency.symbol
-  const groupRatios = useGroupRatios()
+  const groups = useGroupOptions()
   const shouldReduceMotion = useMediaQuery('(prefers-reduced-motion: reduce)')
   const locale = toIntlLocale(i18n.resolvedLanguage || i18n.language)
   const justNowLabel = t('Just now')
@@ -155,10 +166,11 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
           const apiKey = row.original
           const group = row.getValue('group') as string
           return (
-            <ApiKeyGroupCell
-              group={group}
-              ratio={groupRatios[group]}
-              crossGroupRetry={apiKey.cross_group_retry}
+            <ApiKeyGroupSelector
+              apiKey={apiKey}
+              options={groups.options}
+              disabled={groups.disabled}
+              ratio={groups.ratios[group]}
               shouldReduceMotion={shouldReduceMotion}
             />
           )
@@ -233,6 +245,16 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         meta: { pinned: 'right' as const },
       },
     ],
-    [t, quotaUnit, now, groupRatios, shouldReduceMotion, locale, justNowLabel]
+    [
+      t,
+      quotaUnit,
+      now,
+      groups.options,
+      groups.ratios,
+      groups.disabled,
+      shouldReduceMotion,
+      locale,
+      justNowLabel,
+    ]
   )
 }

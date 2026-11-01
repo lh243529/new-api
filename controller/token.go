@@ -400,6 +400,10 @@ func DeleteToken(c *gin.Context) {
 }
 
 func UpdateToken(c *gin.Context) {
+	if c.Query("group_only") == "true" {
+		updateTokenGroup(c)
+		return
+	}
 	userId := c.GetInt("id")
 	statusOnly := c.Query("status_only")
 	request := tokenRequest{}
@@ -509,6 +513,71 @@ func UpdateToken(c *gin.Context) {
 		"message": "",
 		"data":    buildMaskedTokenResponse(cleanToken),
 	})
+}
+
+// updateTokenGroup changes routing without rewriting quota or other token settings.
+func updateTokenGroup(c *gin.Context) {
+	if c.Query("status_only") != "" || c.ContentType() != "application/json" {
+		common.ApiErrorT(c, "Invalid request")
+		return
+	}
+	var request struct {
+		ID    int     `json:"id"`
+		Group *string `json:"group"`
+	}
+	if err := c.ShouldBindJSON(&request); err != nil {
+		common.ApiErrorT(c, "Invalid request")
+		return
+	}
+	params := tokenAuditParams(c)
+	if request.ID > 0 {
+		params["id"] = request.ID
+	}
+	if request.ID <= 0 || request.Group == nil {
+		common.ApiErrorT(c, "Invalid request")
+		return
+	}
+	token, err := model.GetTokenByIds(request.ID, c.GetInt("id"))
+	if err != nil {
+		common.ApiErrorT(c, "Invalid request")
+		return
+	}
+	params["name"] = token.Name
+	group := *request.Group
+	userGroup, err := getTokenRequestUserGroup(c)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if group != "" && ((group == "auto" && !service.GroupInUserUsableGroups(userGroup, group)) ||
+		(group != "auto" && !service.IsUserSelectableGroup(userGroup, group))) {
+		common.ApiErrorT(c, "Group is unavailable or unauthorized")
+		return
+	}
+	changedFields := []string{}
+	if token.Group != group {
+		changedFields = append(changedFields, "group")
+		crossGroupRetry := group == "auto"
+		if token.CrossGroupRetry != crossGroupRetry {
+			changedFields = append(changedFields, "cross_group_retry")
+		}
+		if token.AutoGroups != "" {
+			changedFields = append(changedFields, "auto_groups")
+		}
+		token.Group = group
+		token.CrossGroupRetry = crossGroupRetry
+		if err := token.SetAutoGroups(nil); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+		if err := token.UpdateGroup(); err != nil {
+			common.ApiError(c, err)
+			return
+		}
+	}
+	params["changed_fields"] = changedFields
+	common.SetContextKey(c, constant.ContextKeyTokenAuditSucceeded, true)
+	common.ApiSuccess(c, buildMaskedTokenResponse(token))
 }
 
 type TokenBatch struct {

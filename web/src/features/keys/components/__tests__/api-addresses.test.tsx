@@ -17,20 +17,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import {
-  act,
-  cleanup,
-  render,
-  screen,
-  within,
-  waitFor,
-} from '@testing-library/react'
+import { act, cleanup, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 
 import { STATUS_QUERY_KEY, type StatusData } from '@/lib/status-query'
 
-import { ApiKeysPrimaryButtons } from '../api-keys-primary-buttons'
+import { ApiKeyAddresses } from '../api-key-addresses'
 import { ApiKeysProvider } from '../api-keys-provider'
 
 let client: QueryClient
@@ -53,7 +46,7 @@ function renderAddresses(status: StatusData) {
   return render(
     <QueryClientProvider client={client}>
       <ApiKeysProvider>
-        <ApiKeysPrimaryButtons />
+        <ApiKeyAddresses />
       </ApiKeysProvider>
     </QueryClientProvider>
   )
@@ -81,8 +74,8 @@ it('shows every configured address and copies only the chosen visible URL', asyn
     ],
   })
 
-  await user.click(screen.getByRole('button', { name: 'API Addresses' }))
-  const dialog = await screen.findByRole('dialog', { name: 'API Addresses' })
+  const dialog = screen.getByRole('list', { name: 'API Addresses' })
+  expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
   const rows = within(dialog).getAllByRole('listitem')
   expect(rows).toHaveLength(2)
   expect(rows[0]).toHaveTextContent('Global')
@@ -148,30 +141,21 @@ it.each([
     const writeText = vi.spyOn(navigator.clipboard, 'writeText')
     renderAddresses(status)
 
-    await user.tab()
-    const trigger = screen.getByRole('button', { name: 'API Addresses' })
-    expect(trigger).toHaveFocus()
-    await user.keyboard('{Enter}')
-    const dialog = await screen.findByRole('dialog', { name: 'API Addresses' })
-    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    const dialog = screen.getByRole('list', { name: 'API Addresses' })
     expect(within(dialog).getAllByRole('listitem')).toHaveLength(1)
     expect(within(dialog).getByText(label)).toBeVisible()
     expect(within(dialog).getByText(url)).toBeVisible()
     const copy = within(dialog).getByRole('button', {
       name: `Copy API URL: ${url}`,
     })
-    await waitFor(() => expect(copy).toHaveFocus())
+    await user.tab()
+    expect(copy).toHaveFocus()
     await user.keyboard('{Enter}')
     expect(writeText).toHaveBeenCalledWith(url)
-    await user.keyboard('{Escape}')
-    await waitFor(() =>
-      expect(trigger).toHaveAttribute('aria-expanded', 'false')
-    )
-    expect(trigger).toHaveFocus()
   }
 )
 
-it('keeps long addresses readable within the scrollable panel and updates when configuration changes', async () => {
+it('wraps long addresses in the visible address list and updates when configuration changes', async () => {
   const user = userEvent.setup()
   const url =
     'https://regional-api-gateway.example.com/organization/production/openai-compatible/v1/'
@@ -185,9 +169,8 @@ it('keeps long addresses readable within the scrollable panel and updates when c
       },
     ],
   })
-  await user.click(screen.getByRole('button', { name: 'API Addresses' }))
-  const dialog = await screen.findByRole('dialog', { name: 'API Addresses' })
-  expect(dialog).toHaveClass('max-w-[calc(100vw-2rem)]', 'overflow-y-auto')
+  const dialog = screen.getByRole('list', { name: 'API Addresses' })
+  expect(dialog).toHaveClass('flex-wrap', 'min-w-0')
   expect(within(dialog).getByText(url)).toHaveClass('break-all')
   expect(within(dialog).getByText(url)).not.toHaveClass('truncate')
 

@@ -36,6 +36,7 @@ type ApiKeyGroupCellProps = {
   group: string
   ratio?: GroupRatio
   shouldReduceMotion: boolean
+  asContent?: boolean
 }
 
 export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
@@ -43,6 +44,38 @@ export function ApiKeyGroupCell(props: ApiKeyGroupCellProps) {
   const isMobile = useMediaQuery('(max-width: 640px)')
 
   const group = props.group?.trim() || ''
+  if (props.asContent) {
+    return (
+      <span className='flex min-w-0 flex-1 items-center justify-between gap-3 overflow-hidden'>
+        {group === 'auto' ? (
+          <>
+            <StatusBadge
+              label={t('Cross-group')}
+              variant='info'
+              copyable={false}
+              className='min-w-0 truncate px-0'
+            />
+            <GroupRatioBadge
+              ratio={props.ratio}
+              isAuto
+              shouldReduceMotion={props.shouldReduceMotion}
+            />
+          </>
+        ) : (
+          <GroupBadge
+            group={group}
+            ratio={
+              group && typeof props.ratio === 'number' ? props.ratio : undefined
+            }
+            ratioLabel={group ? undefined : t('Inherited')}
+            type='text'
+            className='px-0'
+            containerClassName='w-full justify-between gap-3'
+          />
+        )}
+      </span>
+    )
+  }
   if (group !== 'auto') {
     const ratio =
       group && typeof props.ratio === 'number' ? props.ratio : undefined

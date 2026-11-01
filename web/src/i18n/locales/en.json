@@ -1,9 +1,9 @@
 {
   "translation": {
-    "A thousand possibilities, one direct path": "A thousand possibilities, one direct path",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "A thousand possibilities, one direct path": "A thousand possibilities, one direct path",
     "{{count}} outside this view": "{{count}} outside this view",
     "_copy": "_copy",
     "，": ", ",
@@ -978,6 +978,7 @@
     "By quota": "By quota",
     "By requests": "By requests",
     "By tokens": "By tokens",
+    "Change group for {{name}}": "Change group for {{name}}",
     "Changes save on drop. You can undo the last move.": "Changes save on drop. You can undo the last move.",
     "Channel affinity settings are not initialized": "Channel affinity settings are not initialized",
     "Cache": "Cache",
@@ -2901,6 +2902,7 @@
     "Function calling": "Function calling",
     "Functions": "Functions",
     "Gateways": "Gateways",
+    "Group is unavailable or unauthorized": "Group is unavailable or unauthorized",
     "Group name already exists": "Group name already exists",
     "Group name and type cannot be empty": "Group name and type cannot be empty",
     "GC Count": "GC Count",

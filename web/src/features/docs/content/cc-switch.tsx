@@ -95,7 +95,7 @@ export function getCCSwitchSections(origin: string): DocSection[] {
       content: (
         <>
           <ol className='marker:text-muted-foreground list-decimal pl-5'>
-            <li>安装并打开 CC-Switch，进入本站控制台的“令牌”页面。</li>
+            <li>安装并打开 CC-Switch，进入本站控制台的“API 密钥”页面。</li>
             <li>找到要使用的令牌，打开该行操作菜单中的“CC Switch”。</li>
             <li>
               选择 Claude 或 Codex，填写配置名称，并选择可用的主模型；Claude

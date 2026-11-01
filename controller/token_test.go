@@ -20,8 +20,11 @@ import (
 	"github.com/QuantumNous/new-api/middleware"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
+	"github.com/QuantumNous/new-api/setting"
+	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/glebarez/sqlite"
+	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/driver/mysql"
@@ -736,12 +739,19 @@ func TestAPITokenAuditDatabaseMatrix(t *testing.T) {
 				db, _ := newAuditTestDatabase(t, database.name, dsn)
 				model.DB = db
 				common.SetDatabaseTypes(database.typ, database.typ)
-				require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.Token{}))
+				require.NoError(t, db.AutoMigrate(&model.User{}, &model.UserSession{}, &model.Token{}, &model.Option{}))
+				require.NoError(t, model.EnsureLegacyAccessTokenRetireAt(time.Now().Unix()))
+				connection, err := db.DB()
+				require.NoError(t, err)
+				t.Cleanup(func() { _ = connection.Close() })
 				// Initialize production column quoting as well as the existing audit table.
 				require.NoError(t, model.InitLogDB())
 				if separateLog {
 					logDB, _ := newAuditTestDatabase(t, database.name, dsn)
 					model.LOG_DB = logDB
+					logConnection, err := logDB.DB()
+					require.NoError(t, err)
+					t.Cleanup(func() { _ = logConnection.Close() })
 					require.NoError(t, model.MigrateAuditLogs())
 				}
 				versionSQL := "SELECT version()"
@@ -752,6 +762,7 @@ func TestAPITokenAuditDatabaseMatrix(t *testing.T) {
 				require.NoError(t, db.Raw(versionSQL).Scan(&version).Error)
 				t.Logf("database version: %s", version)
 				verifyAPITokenAudit(t)
+				verifyTokenGroupUpdate(t)
 				if separateLog {
 					var count int64
 					require.NoError(t, db.Model(&model.AuditLog{}).Count(&count).Error)
@@ -764,6 +775,7 @@ func TestAPITokenAuditDatabaseMatrix(t *testing.T) {
 
 func verifyAPITokenAudit(t *testing.T) {
 	t.Helper()
+	configureTokenAutoGroupsTest(t, "5", `["default","vip"]`)
 	pat := "api-token-audit-pat-secret"
 	user := &model.User{Username: "token-owner", Password: "placeholder", Role: common.RoleCommonUser, Status: common.UserStatusEnabled, Group: "default", AuthVersion: 1, AccessToken: &pat, AffCode: "token-owner"}
 	require.NoError(t, model.DB.Create(user).Error)
@@ -808,6 +820,11 @@ func verifyAPITokenAudit(t *testing.T) {
 		{name: "normalized update", method: "PUT", path: "/", body: `{"id":$id,"name":"renamed","expired_time":-1,"remain_quota":200,"unlimited_quota":true,"group":"default","cross_group_retry":true,"allow_ips":""}`, action: "token.update", success: true, params: `{"id":$id,"name":"renamed","changed_fields":["name","remain_quota","group","cross_group_retry","auto_groups"]}`},
 		{name: "configuration values stay private", method: "PUT", path: "/", body: `{"id":$id,"name":"owned","expired_time":42,"remain_quota":100,"unlimited_quota":false,"model_limits_enabled":true,"model_limits":"private-model-configuration","allow_ips":"203.0.113.57","group":"auto","cross_group_retry":true}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":["expired_time","unlimited_quota","model_limits_enabled","model_limits","allow_ips"]}`},
 		{name: "unchanged update", method: "PUT", path: "/", body: `{"id":$id,"name":"owned","expired_time":-1,"remain_quota":100,"unlimited_quota":true,"group":"auto","cross_group_retry":true,"allow_ips":""}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":[]}`},
+		{name: "group only update", method: "PUT", path: "/?group_only=true", body: `{"id":$id,"group":"vip","name":"forged-name","remain_quota":999999}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":["group","cross_group_retry","auto_groups"]}`},
+		{name: "group only inherits user", method: "PUT", path: "/?group_only=true", body: `{"id":$id,"group":""}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":["group","cross_group_retry","auto_groups"]}`},
+		{name: "foreign group update", method: "PUT", path: "/?group_only=true", body: `{"id":$other,"group":"vip"}`, action: "token.update", params: `{"id":$other}`},
+		{name: "unauthorized group update", method: "PUT", path: "/?group_only=true", body: `{"id":$id,"group":"private"}`, action: "token.update", params: `{"id":$id,"name":"owned"}`},
+		{name: "group update storage failure", method: "PUT", path: "/?group_only=true", body: `{"id":$id,"group":"vip"}`, action: "token.update", params: `{"id":$id,"name":"owned"}`, failWrite: true},
 		{name: "user quota query update", method: "PUT", path: "/", body: `{"id":$id,"name":"owned","expired_time":-1,"remain_quota":100,"unlimited_quota":true,"group":"auto","cross_group_retry":true,"allow_ips":"","allow_user_quota_query":true}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":["allow_user_quota_query"]}`},
 		{name: "successful response exceeds audit buffer", method: "PUT", path: "/", body: `{"id":$id,"name":"owned","expired_time":-1,"remain_quota":100,"unlimited_quota":true,"group":"auto","cross_group_retry":true,"allow_ips":"","model_limits":"` + strings.Repeat("m", 64*1024-128) + `"}`, action: "token.update", success: true, params: `{"id":$id,"name":"owned","changed_fields":["model_limits"]}`},
 		{name: "update storage failure", method: "PUT", path: "/", body: `{"id":$id,"name":"failed-rename","unlimited_quota":true}`, action: "token.update", params: `{"id":$id,"name":"owned"}`, failWrite: true},
@@ -1013,5 +1030,121 @@ func verifyAPITokenAudit(t *testing.T) {
 		var count int64
 		require.NoError(t, model.DB.Model(&model.Token{}).Where("name = ?", "audit-down").Count(&count).Error)
 		assert.EqualValues(t, 1, count)
+	})
+}
+
+func TestUpdateTokenGroup(t *testing.T) {
+	setupTokenControllerTestDB(t)
+	verifyTokenGroupUpdate(t)
+}
+
+func verifyTokenGroupUpdate(t *testing.T) {
+	t.Helper()
+	configureTokenAutoGroupsTest(t, "5", `["default","vip"]`)
+	require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","vip":"VIP","auto":"Auto"}`))
+	for index, tc := range []struct {
+		name          string
+		group         any
+		omitGroup     bool
+		query         string
+		foreign       bool
+		contentType   string
+		success       bool
+		initialGroup  string
+		expectedGroup string
+		expectedRetry bool
+		expectedAuto  string
+	}{
+		{name: "normal group", group: "vip", success: true, initialGroup: "auto", expectedGroup: "vip"},
+		{name: "inherit user group", group: "", success: true, initialGroup: "auto", expectedGroup: ""},
+		{name: "enter Auto", group: "auto", success: true, initialGroup: "default", expectedGroup: "auto", expectedRetry: true},
+		{name: "same Auto preserves custom order", group: "auto", success: true, initialGroup: "auto", expectedGroup: "auto", expectedRetry: true, expectedAuto: `["default","vip"]`},
+		{name: "missing group", omitGroup: true},
+		{name: "null group", group: nil},
+		{name: "wrong type", group: 1},
+		{name: "unknown group", group: "private"},
+		{name: "unauthorized Auto group", group: "auto", initialGroup: "default"},
+		{name: "both modes", group: "vip", query: "&status_only=true"},
+		{name: "foreign token", group: "vip", foreign: true},
+		{name: "simple content type", group: "vip", contentType: "text/plain"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if tc.name == "unauthorized Auto group" {
+				require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","vip":"VIP"}`))
+				defer func() {
+					require.NoError(t, setting.UpdateUserUsableGroupsByJSONString(`{"default":"Default","vip":"VIP","auto":"Auto"}`))
+				}()
+			}
+			token := seedToken(t, model.DB, 101, "group-owner", fmt.Sprintf("group-update-%d", index))
+			token.Group = tc.initialGroup
+			token.CrossGroupRetry = tc.initialGroup == "auto"
+			token.AutoGroups = `["default","vip"]`
+			token.ModelLimitsEnabled = true
+			token.ModelLimits = "restricted-model"
+			token.AllowUserQuotaQuery = true
+			require.NoError(t, token.Update())
+			original := *token
+			request := map[string]any{
+				"id": token.Id, "group": tc.group,
+				"name": "injected", "status": 2, "remain_quota": 999999,
+				"unlimited_quota": false, "expired_time": 0,
+				"model_limits": "injected", "allow_ips": "injected",
+				"cross_group_retry": false, "auto_groups": []string{"private"},
+			}
+			if tc.omitGroup {
+				delete(request, "group")
+			}
+			userID := 101
+			if tc.foreign {
+				userID = 202
+			}
+			ctx, recorder := newTokenAutoGroupsAuthenticatedContext(t, http.MethodPut, "/api/token/?group_only=true"+tc.query, request, userID)
+			if tc.contentType != "" {
+				ctx.Request.Header.Set("Content-Type", tc.contentType)
+			}
+			UpdateToken(ctx)
+			response := decodeAPIResponse(t, recorder)
+			require.Equal(t, tc.success, response.Success, response.Message)
+			stored, err := model.GetTokenByIds(token.Id, 101)
+			require.NoError(t, err)
+			if tc.success {
+				original.Group = tc.expectedGroup
+				original.CrossGroupRetry = tc.expectedRetry
+				original.AutoGroups = tc.expectedAuto
+				assert.NotContains(t, string(response.Data), token.Key)
+			}
+			assert.Equal(t, original, *stored, "only the three routing fields may change")
+		})
+	}
+	t.Run("concurrent quota update survives stale routing snapshot", func(t *testing.T) {
+		token := seedToken(t, model.DB, 101, "active-token", "stale-routing-snapshot")
+		require.NoError(t, model.DB.Model(&model.Token{}).Where("id = ?", token.Id).Updates(map[string]any{"remain_quota": 40, "used_quota": 60, "status": common.TokenStatusDisabled}).Error)
+		token.Group = "vip"
+		require.NoError(t, token.UpdateGroup())
+		stored, err := model.GetTokenByIds(token.Id, 101)
+		require.NoError(t, err)
+		assert.Equal(t, 40, stored.RemainQuota)
+		assert.Equal(t, 60, stored.UsedQuota)
+		assert.Equal(t, common.TokenStatusDisabled, stored.Status)
+		assert.Equal(t, "vip", stored.Group)
+	})
+	t.Run("routing changes invalidate a warm token cache", func(t *testing.T) {
+		server := miniredis.RunT(t)
+		previousEnabled, previousRedis := common.RedisEnabled, common.RDB
+		common.RedisEnabled = true
+		common.RDB = redis.NewClient(&redis.Options{Addr: server.Addr()})
+		t.Cleanup(func() {
+			_ = common.RDB.Close()
+			common.RedisEnabled, common.RDB = previousEnabled, previousRedis
+		})
+		token := seedToken(t, model.DB, 101, "cached-token", "group-routing-cache")
+		warm, err := model.GetTokenByKey(token.Key, false)
+		require.NoError(t, err)
+		assert.Equal(t, "default", warm.Group)
+		token.Group = "vip"
+		require.NoError(t, token.UpdateGroup())
+		updated, err := model.GetTokenByKey(token.Key, false)
+		require.NoError(t, err)
+		assert.Equal(t, "vip", updated.Group)
 	})
 }

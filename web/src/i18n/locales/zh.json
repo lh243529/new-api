@@ -1,9 +1,9 @@
 {
   "translation": {
-    "A thousand possibilities, one direct path": "千奇汇流，一路直达",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
+    "A thousand possibilities, one direct path": "千奇汇流，一路直达",
     "{{count}} outside this view": "其中 {{count}} 个不在当前视图",
     "_copy": "_复制",
     "，": "，",
@@ -978,6 +978,7 @@
     "By quota": "按额度",
     "By requests": "按请求数",
     "By tokens": "按 Token",
+    "Change group for {{name}}": "切换 {{name}} 的分组",
     "Changes save on drop. You can undo the last move.": "松手后自动保存，可撤销上一次调整。",
     "Channel affinity settings are not initialized": "渠道亲和性设置未初始化",
     "Cache": "缓存",
@@ -2901,6 +2902,7 @@
     "Function calling": "函数调用",
     "Functions": "函数",
     "Gateways": "网关",
+    "Group is unavailable or unauthorized": "分组不可用或无权访问",
     "Group name already exists": "组名称已存在",
     "Group name and type cannot be empty": "组名称和类型不能为空",
     "GC Count": "GC 次数",
