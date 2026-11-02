@@ -114,7 +114,7 @@ export function ApiKeyGroupCombobox({
             className={cn(
               'border-input bg-muted/40 hover:bg-muted/55 hover:text-foreground active:bg-background data-popup-open:border-ring data-popup-open:bg-background data-popup-open:ring-ring/20 relative h-auto min-h-14 w-full justify-between gap-2 rounded-lg px-3 py-2 text-start shadow-none transition-[background-color,border-color,box-shadow] duration-150 data-popup-open:ring-[3px] sm:min-h-20 sm:gap-3 sm:px-4 sm:py-3',
               variant === 'cell' &&
-                'h-8 min-h-0 w-full max-w-56 gap-2 rounded-md border-0 bg-transparent px-0 py-1 text-xs sm:min-h-0 sm:gap-2 sm:px-0 sm:py-1',
+                'h-8 min-h-0 w-full max-w-56 gap-2 rounded-md border-0 border-transparent bg-transparent px-0 py-1 text-xs group-[[data-slot=table-row]]/api-key-row:max-w-none group-[[data-slot=table-row]]/api-key-row:border group-hover/api-key-row:enabled:not-focus-visible:not-data-popup-open:border-input sm:min-h-0 sm:gap-2 sm:px-0 sm:py-1',
               isAutoSelected &&
                 variant !== 'cell' &&
                 cn(

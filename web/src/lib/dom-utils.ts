@@ -32,3 +32,20 @@ export function applyFaviconToDom(url: string) {
     // Ignore malformed URLs
   }
 }
+
+export function applyPageTitleToDom(title: string) {
+  document.title = title
+  const metaTitle =
+    document.querySelector<HTMLMetaElement>('meta[name="title"]')
+  if (metaTitle) metaTitle.content = title
+}
+
+export function applySystemTitleToDom(name: string) {
+  // The static Open Graph title stays unchanged when other pages use the site name.
+  const title =
+    window.location.pathname === '/'
+      ? document.querySelector<HTMLMetaElement>('meta[property="og:title"]')
+          ?.content || document.title
+      : name
+  applyPageTitleToDom(title)
+}

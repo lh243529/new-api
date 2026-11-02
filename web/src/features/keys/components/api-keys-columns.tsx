@@ -175,7 +175,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
             />
           )
         },
-        size: 220,
+        size: 340,
         meta: { mobileHidden: true },
       },
       {
@@ -184,7 +184,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         header: t('Models'),
         cell: ({ row }) => <ModelLimitsCell apiKey={row.original} />,
         enableSorting: false,
-        size: 160,
+        size: 100,
         meta: { mobileHidden: true },
       },
       {
@@ -193,7 +193,7 @@ export function useApiKeysColumns(now: number): ColumnDef<ApiKey>[] {
         header: t('IP Restriction'),
         cell: ({ row }) => <IpRestrictionsCell apiKey={row.original} />,
         enableSorting: false,
-        size: 160,
+        size: 100,
         meta: { mobileHidden: true },
       },
       {

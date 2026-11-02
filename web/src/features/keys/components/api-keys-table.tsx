@@ -375,7 +375,10 @@ export function ApiKeysTable() {
         <ApiKeysMobileList table={table} isLoading={isLoading} now={now} />
       }
       getRowClassName={(row) =>
-        isDisabledApiKeyRow(row.original) ? DISABLED_ROW_DESKTOP : undefined
+        cn(
+          'group/api-key-row',
+          isDisabledApiKeyRow(row.original) && DISABLED_ROW_DESKTOP
+        )
       }
       bulkActions={<DataTableBulkActions table={table} />}
     />

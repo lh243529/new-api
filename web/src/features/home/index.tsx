@@ -29,8 +29,10 @@ import { CTA, Features, Hero, HowItWorks, Stats } from './components'
 import type { MeteorInteractionChannel } from './components/hero-particle-engine'
 import { HeroParticleScene } from './components/hero-particle-scene'
 import { useHomePageContent } from './hooks'
+import { useHomepageTitle } from './hooks/use-homepage-title'
 
 export function Home() {
+  useHomepageTitle()
   const { i18n, t } = useTranslation()
   const iframeRef = useRef<HTMLIFrameElement>(null)
   const meteorChannelRef = useRef<MeteorInteractionChannel>({
