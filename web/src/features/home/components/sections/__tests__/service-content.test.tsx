@@ -48,8 +48,17 @@ beforeEach(async () => {
   })
 })
 
+const expectedProviders = [
+  { name: 'OpenAI', icon: '/model/openai.svg', monochrome: true },
+  { name: 'Anthropic', icon: '/model/claude.svg', monochrome: false },
+  { name: 'DeepSeek', icon: '/model/deepseek.svg', monochrome: false },
+  { name: 'Zhipu', icon: '/model/zhipu.svg', monochrome: false },
+  { name: 'xAI', icon: '/model/xai.svg', monochrome: true },
+  { name: 'Google', icon: '/model/gemini.svg', monochrome: false },
+]
+
 describe('QiFlow home service content', () => {
-  it('lists exactly the five supported providers with local theme-aware icons', () => {
+  it('lists the six featured providers with local theme-aware icons', () => {
     render(
       <I18nextProvider i18n={translations}>
         <Stats />
@@ -57,25 +66,18 @@ describe('QiFlow home service content', () => {
     )
 
     const band = screen.getByRole('region', {
-      name: 'Five model providers. One gateway.',
+      name: 'Multiple model providers. One gateway.',
     })
     const providers = within(band).getAllByRole('listitem')
-    expect(providers.map((provider) => provider.textContent)).toEqual([
-      'OpenAI',
-      'Claude',
-      'DeepSeek',
-      'Zhipu',
-      'XAI',
-    ])
-    for (const provider of providers) {
-      const name = provider.textContent ?? ''
-      const icon = provider.querySelector('img')
-      expect(icon).toHaveAttribute('src', `/model/${name.toLowerCase()}.svg`)
-      expect(icon).toHaveAttribute('alt', '')
-      if (name === 'OpenAI' || name === 'XAI') {
-        expect(icon).toHaveClass('dark:invert')
-      }
-    }
+    expect(providers.map((provider) => provider.textContent)).toEqual(
+      expectedProviders.map(({ name }) => name)
+    )
+    expectedProviders.forEach(({ icon, monochrome }, index) => {
+      const image = providers[index].querySelector('img')
+      expect(image).toHaveAttribute('src', icon)
+      expect(image).toHaveAttribute('alt', '')
+      expect(image?.classList.contains('dark:invert')).toBe(monochrome)
+    })
     expect(band).toHaveTextContent('current availability and pricing')
     expect(band).not.toHaveTextContent(/50\+|100\+|10\+/)
   })
@@ -101,11 +103,15 @@ describe('QiFlow home service content', () => {
     ]) {
       expect(screen.getByRole('heading', { name })).toBeVisible()
     }
+    const providerDiagram = screen.getByRole('img', {
+      name: 'Multiple providers, through QiFlow, to your tools and apps',
+    })
+    expect(providerDiagram).toBeVisible()
     expect(
-      screen.getByRole('img', {
-        name: 'Five providers, through QiFlow, to your tools and apps',
-      })
-    ).toBeVisible()
+      Array.from(providerDiagram.querySelectorAll('img'), (image) =>
+        image.getAttribute('src')
+      )
+    ).toEqual(expectedProviders.map(({ icon }) => icon))
     expect(screen.getByText('Cherry Studio')).toBeVisible()
     expect(screen.getByText('CC Switch')).toBeVisible()
     expect(
@@ -120,7 +126,7 @@ describe('QiFlow home service content', () => {
       'One clear path from model selection to tool setup, application calls, and usage tracking.'
     )
     expect(document.body).not.toHaveTextContent(
-      /Gemini|Qwen|Llama|self-host|millisecond|Multi-region deployment|set up channels/i
+      /Qwen|Llama|self-host|millisecond|Multi-region deployment|set up channels/i
     )
   })
 
@@ -158,7 +164,7 @@ describe('QiFlow home service content', () => {
     await act(() => translations.changeLanguage('zhCN'))
 
     for (const name of [
-      '五家模型，一个入口',
+      '多家模型，一个入口',
       '多家模型，一处接入',
       '常用工具，轻松配置',
       '应用开发，接入有章',
@@ -173,6 +179,14 @@ describe('QiFlow home service content', () => {
     expect(
       screen.queryByRole('heading', { name: 'Know what you use' })
     ).not.toBeInTheDocument()
+    expect(
+      screen.getByText('通过奇流接入多家模型服务，按任务选择合适的模型。')
+    ).toBeVisible()
+    expect(
+      screen.getByRole('img', {
+        name: '多家厂商，经由奇流，连接你的工具与应用',
+      })
+    ).toBeVisible()
     expect(screen.getByText('奇流')).toBeVisible()
     expect(screen.queryByText('为你的工作流而来')).not.toBeInTheDocument()
     expect(screen.queryByText('奇在上游，流在你手')).not.toBeInTheDocument()

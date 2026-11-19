@@ -35,7 +35,7 @@ export function Stats() {
           id='home-providers-title'
           className='text-lg font-semibold tracking-tight md:text-xl'
         >
-          {t('Five model providers. One gateway.')}
+          {t('Multiple model providers. One gateway.')}
         </h2>
         <ul className='mt-7 flex flex-wrap items-center justify-center gap-x-8 gap-y-5 md:gap-x-14'>
           {HOME_PROVIDERS.map((provider) => (

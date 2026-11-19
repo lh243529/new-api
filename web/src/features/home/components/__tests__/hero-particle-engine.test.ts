@@ -326,6 +326,46 @@ describe('hero particle engine', () => {
     cleanup()
   })
 
+  it('draws the Gemini icon when selected for an animated meteor', () => {
+    const context = Object.assign(createCanvasContext(), {
+      drawImage: vi.fn(),
+      save: vi.fn(),
+      restore: vi.fn(),
+    })
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context)
+    vi.spyOn(HTMLImageElement.prototype, 'complete', 'get').mockReturnValue(
+      true
+    )
+    vi.spyOn(HTMLImageElement.prototype, 'naturalWidth', 'get').mockReturnValue(
+      24
+    )
+    vi.spyOn(Math, 'random').mockReturnValue(0.85)
+    let renderFrame: FrameRequestCallback | undefined
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation((callback) => {
+      renderFrame = callback
+      return 21
+    })
+    const stage = document.createElement('div')
+    vi.spyOn(stage, 'getBoundingClientRect').mockReturnValue(
+      new DOMRect(0, 0, 800, 480)
+    )
+    const cleanup = startHeroParticleEngine(
+      stage,
+      document.createElement('canvas'),
+      null,
+      { x: -10000, y: -10000, active: false },
+      false
+    )
+
+    renderFrame?.(0)
+
+    expect(context.drawImage.mock.calls[0]?.[0]).toHaveAttribute(
+      'src',
+      '/model/gemini.svg'
+    )
+    cleanup()
+  })
+
   it.each([
     { width: 499, particleCount: 433, meteorCount: 10 },
     { width: 500, particleCount: 667, meteorCount: 10 },

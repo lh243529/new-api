@@ -24,10 +24,11 @@ import type { TFunction } from 'i18next'
 
 export const HOME_PROVIDERS = [
   { name: 'OpenAI', icon: '/model/openai.svg', monochrome: true },
-  { name: 'Claude', icon: '/model/claude.svg', monochrome: false },
+  { name: 'Anthropic', icon: '/model/claude.svg', monochrome: false },
   { name: 'DeepSeek', icon: '/model/deepseek.svg', monochrome: false },
   { name: 'Zhipu', icon: '/model/zhipu.svg', monochrome: false },
-  { name: 'XAI', icon: '/model/xai.svg', monochrome: true },
+  { name: 'xAI', icon: '/model/xai.svg', monochrome: true },
+  { name: 'Google', icon: '/model/gemini.svg', monochrome: false },
 ] as const
 
 // Layout - Main base classes

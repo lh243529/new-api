@@ -46,16 +46,16 @@ export function Features() {
       num: '01',
       title: t('Many models, one connection'),
       desc: t(
-        'Access five model providers through QiFlow and choose the right model for each task.'
+        'Access multiple model providers through QiFlow and choose the right model for each task.'
       ),
       span: 'md:col-span-2',
       visual: (
         <div
           role='img'
           aria-label={t(
-            'Five providers, through QiFlow, to your tools and apps'
+            'Multiple providers, through QiFlow, to your tools and apps'
           )}
-          className='mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row sm:gap-4'
+          className='mt-6 flex flex-col items-center justify-center gap-3 lg:flex-row lg:gap-4'
         >
           <div className='flex -space-x-2' aria-hidden='true'>
             {HOME_PROVIDERS.map((provider) => (
@@ -79,14 +79,14 @@ export function Features() {
           </div>
           <ArrowRight
             aria-hidden='true'
-            className='text-muted-foreground size-4 shrink-0 rotate-90 sm:rotate-0'
+            className='text-muted-foreground size-4 shrink-0 rotate-90 lg:rotate-0'
           />
           <div className='border-primary/25 bg-primary/5 text-primary rounded-xl border px-5 py-3 text-sm font-semibold'>
             {t('QiFlow')}
           </div>
           <ArrowRight
             aria-hidden='true'
-            className='text-muted-foreground size-4 shrink-0 rotate-90 sm:rotate-0'
+            className='text-muted-foreground size-4 shrink-0 rotate-90 lg:rotate-0'
           />
           <span className='text-muted-foreground text-center text-xs font-medium'>
             {t('Your tools and apps')}

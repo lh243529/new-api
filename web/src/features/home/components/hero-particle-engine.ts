@@ -67,6 +67,7 @@ const MODEL_ICONS: ReadonlyArray<{
   { path: '/model/openai.svg', color: [229, 231, 235] },
   { path: '/model/xai.svg', color: [203, 213, 225] },
   { path: '/model/zhipu.svg', color: [56, 89, 255] },
+  { path: '/model/gemini.svg', color: [49, 134, 255] },
 ]
 
 const MAX_BACKGROUND_CANVAS_PIXELS = 3_000_000
